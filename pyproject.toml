@@ -1,0 +1,29 @@
+[project]
+name = "agent-memory-lite"
+version = "0.1.0"
+description = "轻量级中文友好的 Agent 记忆增强系统"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=3.0",
+    "jieba>=0.42",
+    "click>=8.0",
+    "onnxruntime>=1.27.0",
+    "tokenizers>=0.23.1",
+    "sqlite-vec>=0.1.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1",
+]
+
+[project.scripts]
+aml = "agent_memory_lite.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+]
