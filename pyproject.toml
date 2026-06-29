@@ -8,12 +8,14 @@ dependencies = [
     "fastmcp>=3.0",
     "jieba>=0.42",
     "click>=8.0",
-    "onnxruntime>=1.27.0",
     "tokenizers>=0.23.1",
-    "sqlite-vec>=0.1.9",
 ]
 
 [project.optional-dependencies]
+embedding = [
+    "onnxruntime>=1.27.0",
+    "sqlite-vec>=0.1.9",
+]
 dev = [
     "pytest>=7.0",
     "ruff>=0.1",
@@ -26,6 +28,8 @@ aml = "agent_memory_lite.cli:main"
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.15.20",
+    "onnxruntime>=1.27.0",
+    "sqlite-vec>=0.1.9",
 ]
 
 [tool.ruff]

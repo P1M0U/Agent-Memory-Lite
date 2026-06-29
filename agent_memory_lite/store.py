@@ -56,8 +56,16 @@ class MemoryStore:
         content: str,
         category: str = "general",
         tags: list[str] | None = None,
+        skip_duplicate: bool = True,
     ) -> int:
-        """存储一条记忆，返回 id"""
+        """存储一条记忆，返回 id
+
+        Args:
+            content: 记忆内容
+            category: 分类
+            tags: 标签列表
+            skip_duplicate: 是否跳过重复内容（默认 True）
+        """
         if tags is None:
             tags = []
 
@@ -68,6 +76,15 @@ class MemoryStore:
 
         if not content:
             raise ValueError("内容不能为空")
+
+        # 自动去重：检查是否已存在相同内容
+        if skip_duplicate and self.exists_by_content(content):
+            # 返回已有记忆的 id
+            row = self.conn.execute(
+                "SELECT id FROM memories WHERE content = ? LIMIT 1",
+                (content,),
+            ).fetchone()
+            return row["id"]
 
         tags_json = json.dumps(tags, ensure_ascii=False)
         tokenized = tokenize(content)
@@ -219,8 +236,27 @@ class MemoryStore:
             "vector_enabled": self._has_vec(),
         }
 
+    def reindex_fts(self) -> dict:
+        """重新分词所有记忆并重建 FTS5 索引（用于 jieba 词典更新后）"""
+        memories = self.conn.execute(
+            "SELECT id, content, tags, category FROM memories"
+        ).fetchall()
+        count = 0
+        for mem in memories:
+            tokenized = tokenize(mem["content"])
+            self.conn.execute(
+                "DELETE FROM memories_fts WHERE rowid=?", (mem["id"],)
+            )
+            self.conn.execute(
+                "INSERT INTO memories_fts (rowid, content, tags, category) "
+                "VALUES (?, ?, ?, ?)",
+                (mem["id"], tokenized, mem["tags"], mem["category"]),
+            )
+            count += 1
+        self.conn.commit()
+        return {"reindexed": count}
+
     def exists_by_content(self, content: str) -> bool:
-        """检查是否已存在相同内容的记忆"""
         row = self.conn.execute(
             "SELECT 1 FROM memories WHERE content = ? LIMIT 1", (content,)
         ).fetchone()
@@ -264,3 +300,44 @@ class MemoryStore:
             "size_after": size_after,
             "freed": size_before - size_after,
         }
+
+    def delete_by_category(self, category: str) -> int:
+        """按分类批量删除记忆，返回删除条数"""
+        # 先获取要删除的 ID
+        ids = [
+            r["id"]
+            for r in self.conn.execute(
+                "SELECT id FROM memories WHERE category = ?", (category,)
+            ).fetchall()
+        ]
+
+        if not ids:
+            return 0
+
+        # 三表同步删除
+        placeholders = ",".join("?" * len(ids))
+        self.conn.execute(
+            f"DELETE FROM memories_fts WHERE rowid IN ({placeholders})",
+            ids,
+        )
+        if self._has_vec():
+            self.conn.execute(
+                f"DELETE FROM memories_vec WHERE id IN ({placeholders})", ids
+            )
+        self.conn.execute(
+            f"DELETE FROM memories WHERE id IN ({placeholders})", ids
+        )
+        self.conn.commit()
+        return len(ids)
+
+    def delete_all(self) -> int:
+        """清空所有记忆，返回删除条数"""
+        count = self.conn.execute("SELECT COUNT(*) FROM memories").fetchone()[
+            0
+        ]
+        self.conn.execute("DELETE FROM memories_fts")
+        if self._has_vec():
+            self.conn.execute("DELETE FROM memories_vec")
+        self.conn.execute("DELETE FROM memories")
+        self.conn.commit()
+        return count

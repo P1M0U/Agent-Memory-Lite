@@ -24,14 +24,17 @@ def main(ctx, db_path, no_embed):
 @click.argument("content")
 @click.option("-c", "--category", default="general", help="分类")
 @click.option("-t", "--tags", default="", help="标签（逗号分隔）")
+@click.option("--allow-duplicate", is_flag=True, help="允许重复存储相同内容")
 @click.pass_context
-def store(ctx, content, category, tags):
+def store(ctx, content, category, tags, allow_duplicate):
     """存储一条记忆"""
     tag_list = (
         [t.strip() for t in tags.split(",") if t.strip()] if tags else []
     )
     engine = ctx.obj["engine"]
-    memory_id = engine.store(content, category, tag_list)
+    memory_id = engine.store(
+        content, category, tag_list, skip_duplicate=not allow_duplicate
+    )
     click.echo(f"ok  id={memory_id}")
 
 
@@ -180,6 +183,41 @@ def import_memories(source, db_path, dry_run):
     click.echo(
         f"done: {result['imported']} imported, {result['skipped']} skipped"
     )
+
+
+@main.command()
+@click.option("-c", "--category", default=None, help="按分类批量删除")
+@click.option("--force", is_flag=True, help="确认执行（否则预览）")
+@click.pass_context
+def clean(ctx, category, force):
+    """批量删除记忆（按分类或清空全部）"""
+    engine = ctx.obj["engine"]
+    if category:
+        if not force:
+            s = engine.stats()
+            cat_count = s["categories"].get(category, 0)
+            click.echo(f"would delete {cat_count} memories in '{category}'")
+            click.echo("use --force to confirm")
+            return
+        count = engine.delete_by_category(category)
+        click.echo(f"deleted {count} memories in '{category}'")
+    else:
+        if not force:
+            s = engine.stats()
+            click.echo(f"would delete all {s['total']} memories")
+            click.echo("use --force to confirm")
+            return
+        count = engine.delete_all()
+        click.echo(f"deleted all {count} memories")
+
+
+@main.command()
+@click.pass_context
+def reindex(ctx):
+    """重新分词并重建 FTS5 索引（词典更新后使用）"""
+    engine = ctx.obj["engine"]
+    result = engine.reindex_fts()
+    click.echo(f"reindexed: {result['reindexed']} memories")
 
 
 if __name__ == "__main__":

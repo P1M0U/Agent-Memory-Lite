@@ -42,14 +42,24 @@ class MemoryEngine:
             sqlite_vec.load(self.conn)
             self.conn.enable_load_extension(False)
         except Exception:
-            # sqlite-vec 不可用，跳过向量功能
+            # sqlite-vec 不可用（打包环境/ARM/扩展禁用），跳过向量功能
             return
 
-        self._vec_dim = self._embedder.dim
+        try:
+            self._vec_dim = self._embedder.dim
+        except Exception:
+            # 嵌入模型加载失败（文件缺失/损坏），降级为纯 FTS5
+            self._embedder = None
+            return
 
         # 创建向量表
-        self.conn.execute(vec_table_sql(self._vec_dim))
-        self.conn.commit()
+        try:
+            self.conn.execute(vec_table_sql(self._vec_dim))
+            self.conn.commit()
+        except Exception:
+            # 向量表创建失败，降级
+            self._vec_dim = 0
+            self._embedder = None
 
     def _has_vec(self) -> bool:
         """是否有向量表"""
@@ -62,9 +72,10 @@ class MemoryEngine:
         content: str,
         category: str = "general",
         tags: list[str] | None = None,
+        skip_duplicate: bool = True,
     ) -> int:
-        """存储一条记忆，返回 id"""
-        return self._store.store(content, category, tags)
+        """存储一条记忆，返回 id（默认跳过重复内容）"""
+        return self._store.store(content, category, tags, skip_duplicate)
 
     def search(
         self,
@@ -120,6 +131,18 @@ class MemoryEngine:
         """回收已删除空间，返回数据库文件大小变化"""
         return self._store.vacuum()
 
+    def delete_by_category(self, category: str) -> int:
+        """按分类批量删除记忆，返回删除条数"""
+        return self._store.delete_by_category(category)
+
+    def delete_all(self) -> int:
+        """清空所有记忆，返回删除条数"""
+        return self._store.delete_all()
+
+    def reindex_fts(self) -> dict:
+        """重新分词所有记忆并重建 FTS5 索引"""
+        return self._store.reindex_fts()
+
     def close(self):
         """关闭数据库连接"""
         self.conn.close()
@@ -141,6 +164,17 @@ def create_engine(
         from .embedder import Embedder
 
         embedder = Embedder(model_dir)
+        # 主动触发模型加载（Embedder 是懒加载的，.dim 才真正加载）
+        # 放在 try 内，加载失败则降级为纯 FTS5 模式
+        _ = embedder.dim
     except Exception:
-        pass
-    return MemoryEngine(db_path, embedder=embedder)
+        embedder = None
+
+    try:
+        return MemoryEngine(db_path, embedder=embedder)
+    except Exception:
+        # MemoryEngine 构造失败时也降级
+        if embedder is not None:
+            embedder = None
+            return MemoryEngine(db_path, embedder=embedder)
+        raise

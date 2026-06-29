@@ -32,7 +32,10 @@ def _get_engine() -> MemoryEngine:
 
 @mcp.tool()
 def store_memory(
-    content: str, category: str = "general", tags: list[str] = None
+    content: str,
+    category: str = "general",
+    tags: list[str] = None,
+    skip_duplicate: bool = True,
 ) -> dict:
     """存储一条记忆
 
@@ -40,11 +43,12 @@ def store_memory(
         content: 记忆内容
         category: 分类 (user_pref, project, tool, general)
         tags: 标签列表
+        skip_duplicate: 是否跳过重复内容（默认 True）
     """
     if tags is None:
         tags = []
     engine = _get_engine()
-    memory_id = engine.store(content, category, tags)
+    memory_id = engine.store(content, category, tags, skip_duplicate)
     return {"id": memory_id, "status": "ok"}
 
 
@@ -77,26 +81,24 @@ def get_memory(memory_id: int) -> dict | None:
 @mcp.tool()
 def update_memory(
     memory_id: int,
-    content: str = "",
-    category: str = "",
-    tags: list[str] = None,
+    content: str | None = None,
+    category: str | None = None,
+    tags: list[str] | None = None,
 ) -> dict:
     """更新记忆内容/分类/标签
 
     Args:
         memory_id: 记忆 id
-        content: 新内容（留空不改）
-        category: 新分类（留空不改）
-        tags: 新标签（留空不改）
+        content: 新内容（None 表示不改）
+        category: 新分类（None 表示不改）
+        tags: 新标签（None 表示不改）
     """
-    if tags is None:
-        tags = []
     engine = _get_engine()
     ok = engine.update(
         memory_id,
-        content=content or None,
-        category=category or None,
-        tags=tags or None,
+        content=content,
+        category=category,
+        tags=tags,
     )
     return {"status": "ok" if ok else "not_found"}
 
@@ -114,15 +116,35 @@ def delete_memory(memory_id: int) -> dict:
 
 
 @mcp.tool()
-def list_memories(category: str = "", limit: int = 20) -> list[dict]:
+def delete_memories_by_category(category: str) -> dict:
+    """按分类批量删除记忆
+
+    Args:
+        category: 要删除的分类
+    """
+    engine = _get_engine()
+    count = engine.delete_by_category(category)
+    return {"status": "ok", "deleted": count}
+
+
+@mcp.tool()
+def reindex_memories() -> dict:
+    """重新分词并重建 FTS5 索引（词典更新后使用）"""
+    engine = _get_engine()
+    result = engine.reindex_fts()
+    return {"status": "ok", "reindexed": result["reindexed"]}
+
+
+@mcp.tool()
+def list_memories(category: str | None = None, limit: int = 20) -> list[dict]:
     """列出记忆
 
     Args:
-        category: 按分类过滤（留空返回全部）
+        category: 按分类过滤（None 返回全部）
         limit: 返回条数
     """
     engine = _get_engine()
-    return engine.list_memories(category=category or None, limit=limit)
+    return engine.list_memories(category=category, limit=limit)
 
 
 @mcp.tool()
