@@ -4,7 +4,7 @@ import json
 
 import click
 
-from .engine import MemoryEngine, create_engine
+from ..core.engine import MemoryEngine, create_engine
 
 
 @click.group()
@@ -158,7 +158,7 @@ def vacuum(ctx):
 @click.option("--batch-size", default=50, help="批量大小")
 def migrate(db_path, model_dir, batch_size):
     """为已有记忆生成向量嵌入"""
-    from .migrate import migrate_memories
+    from ..tools.migrate import migrate_memories
 
     result = migrate_memories(db_path, model_dir, batch_size)
     click.echo(
@@ -174,7 +174,7 @@ def migrate(db_path, model_dir, batch_size):
 @click.option("--dry-run", is_flag=True, help="仅预览，不实际写入")
 def import_memories(source, db_path, dry_run):
     """从 holographic memory 导入记忆"""
-    from .import_holographic import import_from_holographic
+    from ..tools.import_holographic import import_from_holographic
 
     result = import_from_holographic(source, db_path, dry_run)
     if dry_run:

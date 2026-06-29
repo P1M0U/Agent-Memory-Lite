@@ -2,8 +2,8 @@
 
 import pytest
 
-from agent_memory_lite.engine import MemoryEngine
-from agent_memory_lite.migrate import migrate_memories
+from agent_memory_lite.core.engine import MemoryEngine
+from agent_memory_lite.tools.migrate import migrate_memories
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ class TestMigrate:
     def test_migrate_generates_vectors(self, tmp_path):
         """有嵌入模型时生成向量"""
         try:
-            from agent_memory_lite.embedder import Embedder
+            from agent_memory_lite.core.embedder import Embedder
 
             Embedder()
         except Exception:
@@ -52,7 +52,7 @@ class TestMigrate:
         assert result["skipped"] == 0
 
         # 验证向量确实被添加（需要 embedder 才能识别向量表）
-        from agent_memory_lite.embedder import Embedder
+        from agent_memory_lite.core.embedder import Embedder
 
         embedder = Embedder()
         eng2 = MemoryEngine(db_path, embedder=embedder)

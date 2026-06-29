@@ -2,8 +2,8 @@
 
 import pytest
 
-from agent_memory_lite.engine import MemoryEngine
-from agent_memory_lite.mcp_server import (
+from agent_memory_lite.core.engine import MemoryEngine
+from agent_memory_lite.entrypoints.mcp_server import (
     delete_memory,
     get_memory,
     list_memories,
@@ -22,7 +22,7 @@ def setup_engine(tmp_path, monkeypatch):
 
     # 注入 engine 到 mcp_server 模块
     monkeypatch.setattr(
-        "agent_memory_lite.mcp_server._get_engine", lambda: engine
+        "agent_memory_lite.entrypoints.mcp_server._get_engine", lambda: engine
     )
     yield engine
     engine.close()

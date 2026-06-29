@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from .engine import MemoryEngine
+from ..core.engine import MemoryEngine
 
 
 def import_from_holographic(source=None, db_path=None, dry_run=False) -> dict:

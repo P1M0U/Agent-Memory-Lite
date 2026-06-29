@@ -2,7 +2,7 @@
 
 import pytest
 
-from agent_memory_lite.engine import MemoryEngine
+from agent_memory_lite.core.engine import MemoryEngine
 
 
 @pytest.fixture

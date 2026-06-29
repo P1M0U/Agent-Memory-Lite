@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.scripts]
-aml = "agent_memory_lite.cli:main"
+aml = "agent_memory_lite.entrypoints.cli:main"
 
 [dependency-groups]
 dev = [

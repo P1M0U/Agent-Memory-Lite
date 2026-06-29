@@ -2,7 +2,7 @@
 
 [English](README_EN.md) | 中文
 
-> v0.5.0
+> v0.5.5
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -21,11 +21,12 @@
 - **语义搜索** — 本地 ONNX 嵌入模型（~113MB），不依赖外部服务
 - **批量嵌入推理** — ONNX Runtime batch 推理，大规模记忆导入性能更好
 - **混合搜索** — 关键词 + 语义加权排序，兼顾精确和模糊
-- **MCP Server** — 标准协议，7 个工具，可接入任何支持 MCP 的 Agent
-- **CLI 工具** — 8 个子命令（store / search / get / update / delete / list / stats / vacuum），方便脚本集成
+- **MCP Server** — 标准协议，10 个工具，可接入任何支持 MCP 的 Agent
+- **CLI 工具** — 10 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex），方便脚本集成
 - **数据迁移** — 支持从 holographic memory 导入，支持为已有记忆补充向量
 - **内容安全防护** — 自动截断超长内容（8000 字符），防止搜索质量下降
-- **数据库维护** — 提供 VACUUM 命令，回收已删除的磁盘空间
+- **自动去重** — 默认跳过重复内容，可通过参数关闭
+- **数据库维护** — VACUUM 回收空间、reindex 重建索引、clean 批量删除
 
 ---
 
@@ -33,27 +34,33 @@
 
 ```
 agent_memory_lite/
-├── __init__.py             # 版本号
-├── config.py               # 集中配置（路径、默认参数）
-├── engine.py               # 门面类 MemoryEngine，组合 store + search
-├── store.py                # 记忆 CRUD + VACUUM + 内容校验（MemoryStore）
-├── search.py               # 三模搜索引擎（SearchEngine）
-├── embedder.py             # ONNX 嵌入模型封装 + batch 推理（Embedder）
-├── schema.py               # SQLite schema 常量
-├── tokenizer.py            # jieba 中文分词
-├── cli.py                  # CLI 命令行工具
-├── mcp_server.py           # MCP Server 入口（FastMCP）
-├── migrate.py              # 向量迁移（为已有记忆生成嵌入）
-└── import_holographic.py   # 从 holographic memory 导入数据
+├── __init__.py               # 版本号
+├── core/                     # 核心业务逻辑
+│   ├── __init__.py
+│   ├── config.py             # 集中配置（路径、默认参数）
+│   ├── engine.py             # 门面类 MemoryEngine，组合 store + search
+│   ├── store.py              # 记忆 CRUD + VACUUM + 去重 + 批量删除
+│   ├── search.py             # 三模搜索引擎（SearchEngine）
+│   ├── embedder.py           # ONNX 嵌入模型封装 + batch 推理（Embedder）
+│   ├── schema.py             # SQLite schema 常量
+│   └── tokenizer.py          # jieba 中文分词
+├── entrypoints/              # 对外入口
+│   ├── __init__.py
+│   ├── cli.py                # CLI 命令行工具
+│   └── mcp_server.py         # MCP Server 入口（FastMCP）
+└── tools/                    # 数据迁移工具
+    ├── __init__.py
+    ├── migrate.py            # 向量迁移（为已有记忆生成嵌入）
+    └── import_holographic.py # 从 holographic memory 导入数据
 tests/
-├── test_engine.py          # 引擎集成测试
-├── test_store.py           # 存储层单元测试
-├── test_search.py          # 搜索层单元测试
-├── test_mcp_server.py      # MCP Server 测试
-├── test_migrate.py         # 迁移测试
+├── test_engine.py            # 引擎集成测试
+├── test_store.py             # 存储层单元测试
+├── test_search.py            # 搜索层单元测试
+├── test_mcp_server.py        # MCP Server 测试
+├── test_migrate.py           # 迁移测试
 └── test_import_holographic.py  # 导入测试
-dicts/                      # 自定义 jieba 词典
-models/embedding/            # ONNX 嵌入模型（需单独下载）
+dicts/                        # 自定义 jieba 词典
+models/embedding/              # ONNX 嵌入模型（需单独下载）
 ```
 
 ---
@@ -75,7 +82,7 @@ models/embedding/            # ONNX 嵌入模型（需单独下载）
    uv sync
 
 3. 验证安装是否成功
-   uv run python -c "from agent_memory_lite.engine import MemoryEngine; print('ok')"
+   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
 4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段：
    agent-memory-lite:
@@ -85,7 +92,7 @@ models/embedding/            # ONNX 嵌入模型（需单独下载）
 5. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.mcp_server
+   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
 6. 给 wrapper 脚本加执行权限
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
@@ -106,7 +113,7 @@ models/embedding/            # ONNX 嵌入模型（需单独下载）
    uv sync
 
 3. 验证安装是否成功
-   uv run python -c "from agent_memory_lite.engine import MemoryEngine; print('ok')"
+   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
 4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段：
    agent-memory-lite:
@@ -116,7 +123,7 @@ models/embedding/            # ONNX 嵌入模型（需单独下载）
 5. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.mcp_server
+   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
 6. 给 wrapper 脚本加执行权限
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
@@ -137,7 +144,7 @@ cd ~/Desktop/Agent-Memory-Lite
 uv sync
 
 # 3. 验证
-uv run python -c "from agent_memory_lite.engine import MemoryEngine; print('ok')"
+uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 ```
 
 ## 下载嵌入模型（可选，用于语义搜索）
@@ -175,7 +182,7 @@ HF_ENDPOINT=https://hf-mirror.com python -c "from huggingface_hub import hf_hub_
 cat > ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh << 'EOF'
 #!/bin/bash
 cd ~/Desktop/Agent-Memory-Lite
-exec uv run python -m agent_memory_lite.mcp_server
+exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 EOF
 chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 ```
@@ -190,25 +197,25 @@ chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 ```bash
 # 存储记忆
-uv run python -m agent_memory_lite.cli store "用户偏好飞书发送文件" -c user_pref -t "飞书"
+uv run python -m agent_memory_lite.entrypoints.cli store "用户偏好飞书发送文件" -c user_pref -t "飞书"
 
 # 关键词搜索
-uv run python -m agent_memory_lite.cli search "飞书"
+uv run python -m agent_memory_lite.entrypoints.cli search "飞书"
 
 # 语义搜索
-uv run python -m agent_memory_lite.cli search "怎么给用户传东西" -m semantic
+uv run python -m agent_memory_lite.entrypoints.cli search "怎么给用户传东西" -m semantic
 
 # 混合搜索
-uv run python -m agent_memory_lite.cli search "MCP协议" -m hybrid
+uv run python -m agent_memory_lite.entrypoints.cli search "MCP协议" -m hybrid
 
 # 查看统计
-uv run python -m agent_memory_lite.cli stats
+uv run python -m agent_memory_lite.entrypoints.cli stats
 
 # 列出所有记忆
-uv run python -m agent_memory_lite.cli list
+uv run python -m agent_memory_lite.entrypoints.cli list
 
 # 回收已删除的磁盘空间
-uv run python -m agent_memory_lite.cli vacuum
+uv run python -m agent_memory_lite.entrypoints.cli vacuum
 ```
 
 ### MCP Server（Agent 自动调用）
@@ -217,32 +224,34 @@ uv run python -m agent_memory_lite.cli vacuum
 
 | 工具名 | 说明 |
 |--------|------|
-| `store_memory` | 存储一条记忆 |
+| `store_memory` | 存储一条记忆（支持去重） |
 | `search_memory` | 搜索记忆（keyword/semantic/hybrid） |
 | `get_memory` | 获取指定记忆 |
 | `update_memory` | 更新记忆 |
 | `delete_memory` | 删除记忆 |
+| `delete_memories_by_category` | 按分类批量删除 |
 | `list_memories` | 列出记忆 |
 | `memory_stats` | 查看统计 |
+| `reindex_memories` | 重建 FTS5 分词索引 |
 
 ### 数据迁移
 
 ```bash
 # 从 holographic memory 导入
-uv run python -m agent_memory_lite.cli import
+uv run python -m agent_memory_lite.entrypoints.cli import
 
 # 预览（不实际写入）
-uv run python -m agent_memory_lite.cli import --dry-run
+uv run python -m agent_memory_lite.entrypoints.cli import --dry-run
 
 # 为已有记忆生成向量嵌入
-uv run python -m agent_memory_lite.cli migrate
+uv run python -m agent_memory_lite.entrypoints.cli migrate
 ```
 
 ### 数据库维护
 
 ```bash
 # 回收已删除记忆占用的磁盘空间
-uv run python -m agent_memory_lite.cli vacuum
+uv run python -m agent_memory_lite.entrypoints.cli vacuum
 ```
 
 大量删除记忆后，SQLite 不会自动回收空间。`vacuum` 命令会重建数据库文件，释放已删除的磁盘空间。

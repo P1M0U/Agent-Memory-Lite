@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-> v0.5.0
+> v0.5.5
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -21,11 +21,12 @@ Lightweight, Chinese-friendly Agent memory system with local semantic search. Bu
 - **Semantic Search** — Local ONNX embedding model (~113MB), no external services
 - **Batch Embedding Inference** — ONNX Runtime batch inference for better performance on large-scale memory imports
 - **Hybrid Search** — Keyword + semantic weighted ranking, balancing precision and recall
-- **MCP Server** — Standard protocol, 7 tools, works with any MCP-compatible Agent
-- **CLI Tool** — 8 subcommands (store / search / get / update / delete / list / stats / vacuum) for scripting and automation
+- **MCP Server** — Standard protocol, 10 tools, works with any MCP-compatible Agent
+- **CLI Tool** — 10 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex) for scripting and automation
 - **Data Migration** — Import from holographic memory, generate embeddings for existing memories
 - **Content Validation** — Auto-truncation of overly long content (8000 chars) to prevent search quality degradation
-- **Database Maintenance** — Built-in VACUUM command to reclaim disk space after deletions
+- **Auto Deduplication** — Skips duplicate content by default, configurable via parameter
+- **Database Maintenance** — VACUUM, reindex, batch delete by category
 
 ---
 
@@ -33,27 +34,33 @@ Lightweight, Chinese-friendly Agent memory system with local semantic search. Bu
 
 ```
 agent_memory_lite/
-├── __init__.py             # Version
-├── config.py               # Centralized config (paths, defaults)
-├── engine.py               # Facade class MemoryEngine, composes store + search
-├── store.py                # Memory CRUD + VACUUM + content validation (MemoryStore)
-├── search.py               # Three-mode search engine (SearchEngine)
-├── embedder.py             # ONNX embedding model wrapper + batch inference (Embedder)
-├── schema.py               # SQLite schema constants
-├── tokenizer.py            # jieba Chinese tokenizer
-├── cli.py                  # CLI command-line tool
-├── mcp_server.py           # MCP Server entry point (FastMCP)
-├── migrate.py              # Vector migration (generate embeddings for existing memories)
-└── import_holographic.py   # Import data from holographic memory
+├── __init__.py               # Version
+├── core/                     # Core business logic
+│   ├── __init__.py
+│   ├── config.py             # Centralized config (paths, defaults)
+│   ├── engine.py             # Facade class MemoryEngine, composes store + search
+│   ├── store.py              # Memory CRUD + VACUUM + dedup + batch delete
+│   ├── search.py             # Three-mode search engine (SearchEngine)
+│   ├── embedder.py           # ONNX embedding model wrapper + batch inference (Embedder)
+│   ├── schema.py             # SQLite schema constants
+│   └── tokenizer.py          # jieba Chinese tokenizer
+├── entrypoints/              # Public entry points
+│   ├── __init__.py
+│   ├── cli.py                # CLI command-line tool
+│   └── mcp_server.py         # MCP Server entry point (FastMCP)
+└── tools/                    # Data migration tools
+    ├── __init__.py
+    ├── migrate.py            # Vector migration (generate embeddings for existing memories)
+    └── import_holographic.py # Import data from holographic memory
 tests/
-├── test_engine.py          # Engine integration tests
-├── test_store.py           # Storage layer unit tests
-├── test_search.py          # Search layer unit tests
-├── test_mcp_server.py      # MCP Server tests
-├── test_migrate.py         # Migration tests
+├── test_engine.py            # Engine integration tests
+├── test_store.py             # Storage layer unit tests
+├── test_search.py            # Search layer unit tests
+├── test_mcp_server.py        # MCP Server tests
+├── test_migrate.py           # Migration tests
 └── test_import_holographic.py  # Import tests
-dicts/                      # Custom jieba dictionaries
-models/embedding/            # ONNX embedding model (download separately)
+dicts/                        # Custom jieba dictionaries
+models/embedding/              # ONNX embedding model (download separately)
 ```
 
 ---
@@ -75,7 +82,7 @@ Please install Agent Memory Lite for me. Steps:
    uv sync
 
 3. Verify the installation works
-   uv run python -c "from agent_memory_lite.engine import MemoryEngine; print('ok')"
+   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
 4. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers:
    agent-memory-lite:
@@ -85,7 +92,7 @@ Please install Agent Memory Lite for me. Steps:
 5. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.mcp_server
+   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
 6. Make the wrapper executable
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
@@ -106,7 +113,7 @@ Please install Agent Memory Lite for me. Steps:
    uv sync
 
 3. Verify the installation works
-   uv run python -c "from agent_memory_lite.engine import MemoryEngine; print('ok')"
+   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
 4. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers:
    agent-memory-lite:
@@ -116,7 +123,7 @@ Please install Agent Memory Lite for me. Steps:
 5. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.mcp_server
+   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
 6. Make the wrapper executable
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
@@ -137,7 +144,7 @@ cd ~/Desktop/Agent-Memory-Lite
 uv sync
 
 # 3. Verify
-uv run python -c "from agent_memory_lite.engine import MemoryEngine; print('ok')"
+uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 ```
 
 ## Manual Hermes MCP Config
@@ -156,7 +163,7 @@ Create the wrapper script:
 cat > ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh << 'EOF'
 #!/bin/bash
 cd ~/Desktop/Agent-Memory-Lite
-exec uv run python -m agent_memory_lite.mcp_server
+exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 EOF
 chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 ```
@@ -191,25 +198,25 @@ Without the model, semantic search degrades gracefully to keyword search.
 
 ```bash
 # Store a memory
-uv run python -m agent_memory_lite.cli store "User prefers receiving files via Feishu" -c user_pref -t "feishu"
+uv run python -m agent_memory_lite.entrypoints.cli store "User prefers receiving files via Feishu" -c user_pref -t "feishu"
 
 # Keyword search
-uv run python -m agent_memory_lite.cli search "feishu"
+uv run python -m agent_memory_lite.entrypoints.cli search "feishu"
 
 # Semantic search
-uv run python -m agent_memory_lite.cli search "how to send files to user" -m semantic
+uv run python -m agent_memory_lite.entrypoints.cli search "how to send files to user" -m semantic
 
 # Hybrid search
-uv run python -m agent_memory_lite.cli search "MCP protocol" -m hybrid
+uv run python -m agent_memory_lite.entrypoints.cli search "MCP protocol" -m hybrid
 
 # Stats
-uv run python -m agent_memory_lite.cli stats
+uv run python -m agent_memory_lite.entrypoints.cli stats
 
 # List all memories
-uv run python -m agent_memory_lite.cli list
+uv run python -m agent_memory_lite.entrypoints.cli list
 
 # Reclaim disk space after deletes
-uv run python -m agent_memory_lite.cli vacuum
+uv run python -m agent_memory_lite.entrypoints.cli vacuum
 ```
 
 ### MCP Server (Agent auto-calls)
@@ -218,32 +225,34 @@ Once configured, the Agent can call these 7 tools directly:
 
 | Tool | Description |
 |------|-------------|
-| `store_memory` | Store a memory |
+| `store_memory` | Store a memory (with dedup) |
 | `search_memory` | Search memories (keyword/semantic/hybrid) |
 | `get_memory` | Get a specific memory |
 | `update_memory` | Update a memory |
 | `delete_memory` | Delete a memory |
+| `delete_memories_by_category` | Batch delete by category |
 | `list_memories` | List memories |
 | `memory_stats` | View statistics |
+| `reindex_memories` | Rebuild FTS5 token index |
 
 ### Data Migration
 
 ```bash
 # Import from holographic memory
-uv run python -m agent_memory_lite.cli import
+uv run python -m agent_memory_lite.entrypoints.cli import
 
 # Preview (dry run)
-uv run python -m agent_memory_lite.cli import --dry-run
+uv run python -m agent_memory_lite.entrypoints.cli import --dry-run
 
 # Generate vector embeddings for existing memories
-uv run python -m agent_memory_lite.cli migrate
+uv run python -m agent_memory_lite.entrypoints.cli migrate
 ```
 
 ### Database Maintenance
 
 ```bash
 # Reclaim disk space from deleted memories
-uv run python -m agent_memory_lite.cli vacuum
+uv run python -m agent_memory_lite.entrypoints.cli vacuum
 ```
 
 After heavy deletions, SQLite does not automatically reclaim disk space. The `vacuum` command rebuilds the database file to free space.

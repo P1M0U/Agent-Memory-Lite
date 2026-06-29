@@ -10,7 +10,7 @@ def migrate_memories(db_path=None, model_dir=None, batch_size=50) -> dict:
     Returns:
         {"migrated": N, "skipped": N, "total": N}
     """
-    from .engine import create_engine
+    from ..core.engine import create_engine
 
     engine = create_engine(db_path, model_dir)
     embedder = engine._embedder

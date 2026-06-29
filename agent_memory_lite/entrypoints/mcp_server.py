@@ -3,7 +3,7 @@
 from fastmcp import FastMCP
 from fastmcp.server.lifespan import lifespan
 
-from .engine import MemoryEngine, create_engine
+from ..core.engine import MemoryEngine, create_engine
 
 _engine: MemoryEngine | None = None
 

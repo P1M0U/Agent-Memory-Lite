@@ -2,7 +2,7 @@
 
 import pytest
 
-from agent_memory_lite.engine import MemoryEngine
+from agent_memory_lite.core.engine import MemoryEngine
 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def engine(tmp_path):
 def engine_with_vec(tmp_path):
     """带向量索引的引擎（用于语义/混合搜索测试）"""
     try:
-        from agent_memory_lite.embedder import Embedder
+        from agent_memory_lite.core.embedder import Embedder
 
         embedder = Embedder()
         db_path = tmp_path / "test_search_vec.db"
