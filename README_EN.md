@@ -326,7 +326,9 @@ CLI:           click
 
 ## License
 
-MIT
+[AGPLv3](LICENSE)
+
+Copyright © 2026 [P1M0U](https://github.com/P1M0U)
 
 ---
 
