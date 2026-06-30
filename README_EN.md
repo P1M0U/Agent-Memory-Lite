@@ -15,6 +15,49 @@ English | [中文](README.md)
 
 Lightweight, Chinese-friendly Agent memory system with local semantic search. Built on SQLite + FTS5 + ONNX embeddings — zero API calls.
 
+## Why This Exists
+
+### Agent Built-in Memory vs. Agent Memory Lite
+
+Agent frameworks (e.g., Hermes) ship with session-scoped memory — tools like `session_search` and `user_profile` handle **in-session context**. This project addresses a different layer:
+
+| Dimension | Agent Built-in Memory | Agent Memory Lite |
+|-----------|----------------------|-------------------|
+| **Scope** | Session-level context | Cross-session long-term memory |
+| **Search** | FTS5 (framework default tokenizer) | FTS5 (jieba custom CJK tokenizer) |
+| **Semantic Search** | No | Optional ONNX local semantic search |
+| **Auto Dedup** | No | Enabled by default |
+| **Batch Delete** | No | By-category + clear-all |
+| **Data Independence** | Framework-locked | Standalone `.db`, portable & backup-ready |
+| **Multi-Agent Sharing** | N/A | Same memory shared across multiple MCP Agents |
+
+### Cross-Agent Memory Hub
+
+The unique value of this project is **framework-agnostic memory**. One `.db` file can be shared by any MCP-compatible Agent (Hermes, Claude Code, Cursor, etc.):
+
+```
+┌─────────┐  ┌──────────┐  ┌──────────┐
+│ Hermes  │  │ Claude   │  │ Cursor   │  ... any MCP-compatible Agent
+└────┬────┘  └────┬─────┘  └────┬─────┘
+     │            │             │
+     └────────────┼─────────────┘
+                  │ MCP Protocol (stdio)
+           ┌──────┴──────┐
+           │ Agent Memory │
+           │     Lite     │
+           └──────┬──────┘
+                  │
+           ┌──────┴──────┐
+           │  memory.db  │  Standalone storage — backup, migrate, analyze
+           └─────────────┘
+```
+
+What this enables:
+- Memories stored via Hermes remain accessible when switching to Claude Code
+- User preferences learned by one Agent benefit another
+- Memory data survives framework upgrades — independent from any single tool
+- One memory store becomes a true "long-term knowledge base" across tools
+
 ## Features
 
 - **Chinese FTS5 Search** — jieba tokenization + SQLite FTS5, same tokenizer for write and query, token-aligned
