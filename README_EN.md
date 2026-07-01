@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-> v0.5.6
+> v0.5.7
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -129,10 +129,10 @@ Please install Agent Memory Lite for me. Steps:
 3. Verify the installation works
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace with your actual home path):
+4. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
    agent-memory-lite:
      args: []
-     command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 5. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
    #!/bin/bash
@@ -160,10 +160,10 @@ Please install Agent Memory Lite for me. Steps:
 3. Verify the installation works
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace with your actual home path):
+4. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
    agent-memory-lite:
      args: []
-     command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 5. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
    #!/bin/bash
@@ -199,8 +199,9 @@ Add to `~/.hermes/config.yaml` under `mcp_servers:`:
 ```yaml
   agent-memory-lite:
     args: []
-    command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+    command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 ```
+(Replace `/home/your-username` with your actual home path)
 
 Create the wrapper script:
 

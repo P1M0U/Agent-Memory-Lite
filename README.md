@@ -2,7 +2,7 @@
 
 [English](README_EN.md) | 中文
 
-> v0.5.6
+> v0.5.7
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -129,10 +129,10 @@ models/embedding/              # ONNX 嵌入模型（需单独下载）
 3. 验证安装是否成功
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名/ 替换为实际路径）：
+4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名 替换为实际路径）：
    agent-memory-lite:
      args: []
-     command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: /home/你的用户名/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 5. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
    #!/bin/bash
@@ -160,10 +160,10 @@ models/embedding/              # ONNX 嵌入模型（需单独下载）
 3. 验证安装是否成功
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名/ 替换为实际路径）：
+4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名 替换为实际路径）：
    agent-memory-lite:
      args: []
-     command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: /home/你的用户名/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 5. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
    #!/bin/bash
@@ -218,8 +218,9 @@ HF_ENDPOINT=https://hf-mirror.com python -c "from huggingface_hub import hf_hub_
 ```yaml
   agent-memory-lite:
     args: []
-    command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+    command: /home/你的用户名/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 ```
+（请将 `/home/你的用户名` 替换为实际 home 路径）
 
 创建 wrapper 脚本：
 

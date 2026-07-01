@@ -12,14 +12,12 @@ resolution-markers = [
 
 [[package]]
 name = "agent-memory-lite"
-version = "0.2.0"
+version = "0.5.6"
 source = { virtual = "." }
 dependencies = [
     { name = "click" },
     { name = "fastmcp" },
     { name = "jieba" },
-    { name = "onnxruntime" },
-    { name = "sqlite-vec" },
     { name = "tokenizers" },
 ]
 
@@ -28,11 +26,17 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
+embedding = [
+    { name = "onnxruntime" },
+    { name = "sqlite-vec" },
+]
 
 [package.dev-dependencies]
 dev = [
+    { name = "onnxruntime" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "sqlite-vec" },
 ]
 
 [package.metadata]
@@ -40,18 +44,20 @@ requires-dist = [
     { name = "click", specifier = ">=8.0" },
     { name = "fastmcp", specifier = ">=3.0" },
     { name = "jieba", specifier = ">=0.42" },
-    { name = "onnxruntime", specifier = ">=1.27.0" },
+    { name = "onnxruntime", marker = "extra == 'embedding'", specifier = ">=1.27.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1" },
-    { name = "sqlite-vec", specifier = ">=0.1.9" },
+    { name = "sqlite-vec", marker = "extra == 'embedding'", specifier = ">=0.1.9" },
     { name = "tokenizers", specifier = ">=0.23.1" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["embedding", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "onnxruntime", specifier = ">=1.27.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.15.20" },
+    { name = "sqlite-vec", specifier = ">=0.1.9" },
 ]
 
 [[package]]
