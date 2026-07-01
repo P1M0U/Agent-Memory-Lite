@@ -131,15 +131,15 @@ models/embedding/              # ONNX 嵌入模型（需单独下载）
 4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名/ 替换为实际路径）：
    agent-memory-lite:
      args: []
-     command: ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
-5. 创建 wrapper 脚本 ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
+5. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
    exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
 6. 给 wrapper 脚本加执行权限
-   chmod +x ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+   chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 完成后告诉我安装结果。
 ```
@@ -162,15 +162,15 @@ models/embedding/              # ONNX 嵌入模型（需单独下载）
 4. 把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名/ 替换为实际路径）：
    agent-memory-lite:
      args: []
-     command: ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
-5. 创建 wrapper 脚本 ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
+5. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
    exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
 6. 给 wrapper 脚本加执行权限
-   chmod +x ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+   chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 完成后告诉我安装结果。
 ```
@@ -217,18 +217,18 @@ HF_ENDPOINT=https://hf-mirror.com python -c "from huggingface_hub import hf_hub_
 ```yaml
   agent-memory-lite:
     args: []
-    command: ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+    command: ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 ```
 
 创建 wrapper 脚本：
 
 ```bash
-cat > ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh << 'EOF'
+cat > ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh << 'EOF'
 #!/bin/bash
 cd ~/Desktop/Agent-Memory-Lite
 exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 EOF
-chmod +x ~/hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 ```
 
 重启 Hermes 后生效。
