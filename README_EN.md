@@ -111,9 +111,11 @@ Please install Agent Memory Lite for me. Steps:
 3. Verify the installation works
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. Ask the user whether to download the embedding model (paraphrase-multilingual-MiniLM-L12-v2, ~113MB)
-   — If yes, download the ONNX quantized model from hf-mirror.com to models/embedding/ for semantic search
-   — If no, skip this step; semantic search will gracefully degrade to keyword search without the model
+4. Ask the user whether to download an embedding model (for semantic search), choose one:
+   — **paraphrase-multilingual-MiniLM-L12-v2** (~113MB, 384-dim, 50+ languages, best for mixed-language content)
+   — **bge-small-zh-v1.5** (~24MB, 512-dim, Chinese-optimized, best for primarily Chinese, much smaller)
+   — See the "Download Embedding Model" section in the project README for download commands (use hf-mirror.com mirror for speed in China)
+   — If the user chooses not to download, skip this step; semantic search degrades gracefully to keyword search
 
 5. Ask the user to choose an install method:
    — **Hermes Memory Provider plugin (recommended)**: Run `cp -r ~/Desktop/Agent-Memory-Lite/hermes-plugin/ ~/.hermes/plugins/agent-memory-lite/`, then follow the [Adapter Guide](agent-memory-lite-hermes-adapter-guide.md) for the remaining steps
@@ -150,9 +152,11 @@ Please install Agent Memory Lite for me. Steps:
 3. Verify the installation works
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. Ask the user whether to download the embedding model (paraphrase-multilingual-MiniLM-L12-v2, ~113MB)
-   — If yes, download the ONNX quantized model from hf-mirror.com to models/embedding/ for semantic search
-   — If no, skip this step; semantic search will gracefully degrade to keyword search without the model
+4. Ask the user whether to download an embedding model (for semantic search), choose one:
+   — **paraphrase-multilingual-MiniLM-L12-v2** (~113MB, 384-dim, 50+ languages, best for mixed-language content)
+   — **bge-small-zh-v1.5** (~24MB, 512-dim, Chinese-optimized, best for primarily Chinese, much smaller)
+   — See the "Download Embedding Model" section in the project README for download commands (use hf-mirror.com mirror for speed in China)
+   — If the user chooses not to download, skip this step; semantic search degrades gracefully to keyword search
 
 5. Ask the user to choose an install method:
    — **Hermes Memory Provider plugin (recommended)**: Run `cp -r ~/Desktop/Agent-Memory-Lite/hermes-plugin/ ~/.hermes/plugins/agent-memory-lite/`, then follow the [Adapter Guide](agent-memory-lite-hermes-adapter-guide.md) for the remaining steps
@@ -216,21 +220,36 @@ Restart Hermes to activate.
 
 ## Download Embedding Model (Optional, for Semantic Search)
 
-The embedding model is ~113MB and needs to be downloaded separately:
+Two embedding models are supported — choose one based on your use case (the system auto-detects model type):
+
+| Model | Size | Dim | Language | Best For |
+|-------|------|-----|----------|----------|
+| **paraphrase-multilingual-MiniLM-L12-v2** | ~113MB | 384 | 50+ languages | Mixed-language content, Chinese + English |
+| **bge-small-zh-v1.5** | ~24MB | 512 | Chinese-optimized | Primarily Chinese, smaller size, better Chinese accuracy |
 
 ```bash
 # Create model directory
 mkdir -p models/embedding/onnx
 
-# Download model files (choose one)
-
-# Option A: From HuggingFace
+# Install download tool
 pip install huggingface-hub
-python -c "from huggingface_hub import hf_hub_download; hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'onnx/model_quantized.onnx', local_dir='models/embedding'); hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json', local_dir='models/embedding')"
 
-# Option B: From hf-mirror.com (faster in China)
-HF_ENDPOINT=https://hf-mirror.com python -c "from huggingface_hub import hf_hub_download; hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'onnx/model_quantized.onnx', local_dir='models/embedding'); hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json', local_dir='models/embedding')"
+# ─── Option A: paraphrase-multilingual-MiniLM-L12-v2 (multilingual, ~113MB) ───
+python -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'onnx/model_quantized.onnx', local_dir='models/embedding')
+hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json', local_dir='models/embedding')
+"
+
+# ─── Option B: bge-small-zh-v1.5 (Chinese-optimized, ~24MB) ───
+python -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download('BAAI/bge-small-zh-v1.5', 'onnx/model_quantized.onnx', local_dir='models/embedding')
+hf_hub_download('BAAI/bge-small-zh-v1.5', 'tokenizer.json', local_dir='models/embedding')
+"
 ```
+
+> **💡 Users in China**: Set `HF_ENDPOINT=https://hf-mirror.com` before downloading for faster access.
 
 Without the model, semantic search degrades gracefully to keyword search.
 

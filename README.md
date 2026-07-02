@@ -111,9 +111,11 @@ models/embedding/   # ONNX 嵌入模型（需单独下载）
 3. 验证安装是否成功
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. 询问用户是否需要下载嵌入模型（paraphrase-multilingual-MiniLM-L12-v2，约 113MB）
-   — 如果用户选择下载，则从 hf-mirror.com 下载 ONNX 量化模型到 models/embedding/ 目录，用于语义搜索
-   — 如果用户选择不下载，跳过此步骤；不下载模型时不报错，语义搜索自动降级为关键词搜索
+4. 询问用户是否需要下载嵌入模型（用于语义搜索），二选一：
+   — **paraphrase-multilingual-MiniLM-L12-v2**（~113MB，384 维，50+ 语言，适合多语言混用）
+   — **bge-small-zh-v1.5**（~24MB，512 维，中文优化，适合纯中文场景，体积更小）
+   — 下载命令见项目 README 的"下载嵌入模型"部分，用 hf-mirror.com 镜像加速
+   — 如果用户选择不下载，跳过此步骤；不下载模型时语义搜索自动降级为关键词搜索
 
 5. 询问用户选择安装方式：
    — **Hermes Memory Provider 插件方式（推荐）**：执行 `cp -r ~/Desktop/Agent-Memory-Lite/hermes-plugin/ ~/.hermes/plugins/agent-memory-lite/`，然后按 [适配器安装指南](agent-memory-lite-hermes-adapter-guide.md) 完成剩余步骤
@@ -150,9 +152,11 @@ models/embedding/   # ONNX 嵌入模型（需单独下载）
 3. 验证安装是否成功
    uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-4. 询问用户是否需要下载嵌入模型（paraphrase-multilingual-MiniLM-L12-v2，约 113MB）
-   — 如果用户选择下载，则从 hf-mirror.com 下载 ONNX 量化模型到 models/embedding/ 目录，用于语义搜索
-   — 如果用户选择不下载，跳过此步骤；不下载模型时不报错，语义搜索自动降级为关键词搜索
+4. 询问用户是否需要下载嵌入模型（用于语义搜索），二选一：
+   — **paraphrase-multilingual-MiniLM-L12-v2**（~113MB，384 维，50+ 语言，适合多语言混用）
+   — **bge-small-zh-v1.5**（~24MB，512 维，中文优化，适合纯中文场景，体积更小）
+   — 下载命令见项目 README 的"下载嵌入模型"部分，用 hf-mirror.com 镜像加速
+   — 如果用户选择不下载，跳过此步骤；不下载模型时语义搜索自动降级为关键词搜索
 
 5. 询问用户选择安装方式：
    — **Hermes Memory Provider 插件方式（推荐）**：执行 `cp -r ~/Desktop/Agent-Memory-Lite/hermes-plugin/ ~/.hermes/plugins/agent-memory-lite/`，然后按 [适配器安装指南](agent-memory-lite-hermes-adapter-guide.md) 完成剩余步骤
@@ -192,20 +196,36 @@ uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print(
 
 ## 下载嵌入模型（可选，用于语义搜索）
 
-嵌入模型约 113MB，需单独下载：
+本项目支持两种嵌入模型，根据你的场景选择其中一个下载即可（系统会自动识别模型类型）：
+
+| 模型 | 大小 | 维度 | 语言 | 适用场景 |
+|------|------|------|------|----------|
+| **paraphrase-multilingual-MiniLM-L12-v2** | ~113MB | 384 | 50+ 语言 | 多语言混用、中英夹杂内容多 |
+| **bge-small-zh-v1.5** | ~24MB | 512 | 中文优化 | 纯中文为主、追求更小体积和更好中文效果 |
 
 ```bash
 # 创建模型目录
 mkdir -p models/embedding/onnx
 
-# 下载模型文件（二选一）
-# 方式一：从 HuggingFace 下载
+# 安装下载工具
 pip install huggingface-hub
-python -c "from huggingface_hub import hf_hub_download; hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'onnx/model_quantized.onnx', local_dir='models/embedding'); hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json', local_dir='models/embedding')"
 
-# 方式二：从 hf-mirror.com 下载（国内更快）
-HF_ENDPOINT=https://hf-mirror.com python -c "from huggingface_hub import hf_hub_download; hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'onnx/model_quantized.onnx', local_dir='models/embedding'); hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json', local_dir='models/embedding')"
+# ─── 模型 A：paraphrase-multilingual-MiniLM-L12-v2（多语言，~113MB）───
+python -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'onnx/model_quantized.onnx', local_dir='models/embedding')
+hf_hub_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json', local_dir='models/embedding')
+"
+
+# ─── 模型 B：bge-small-zh-v1.5（中文优化，~24MB）───
+python -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download('BAAI/bge-small-zh-v1.5', 'onnx/model_quantized.onnx', local_dir='models/embedding')
+hf_hub_download('BAAI/bge-small-zh-v1.5', 'tokenizer.json', local_dir='models/embedding')
+"
 ```
+
+> **💡 国内用户**：下载前设置环境变量 `HF_ENDPOINT=https://hf-mirror.com` 使用镜像加速。
 
 不下载模型也能使用，语义搜索会自动降级为关键词搜索。
 

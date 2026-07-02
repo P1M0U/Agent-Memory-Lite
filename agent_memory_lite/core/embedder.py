@@ -1,4 +1,11 @@
-"""嵌入模型封装 — onnxruntime + ONNX 量化模型"""
+"""嵌入模型封装 — onnxruntime + ONNX 量化模型
+
+支持的模型：
+- paraphrase-multilingual-MiniLM-L12-v2 (384维, 50+语言, 均值池化)
+- bge-small-zh-v1.5 (512维, 中文优化, CLS池化)
+
+自动检测模型类型，无需手动配置。
+"""
 
 from pathlib import Path
 
@@ -9,6 +16,23 @@ from tokenizers import Tokenizer
 from .config import DEFAULT_MODEL_DIR
 
 
+def _detect_model_type(session: ort.InferenceSession) -> str:
+    """根据 ONNX 模型签名自动检测模型类型
+
+    检测规则：
+    - 2 输入 + 512 维 → "bge"
+    - 3 输入 + 384 维 → "minilm"
+    - 其他 → "minilm"（兜底）
+    """
+    input_names = [i.name for i in session.get_inputs()]
+    output_dim = session.get_outputs()[0].shape[-1]
+    output_dim = output_dim if isinstance(output_dim, int) else 0
+
+    if len(input_names) == 2 and output_dim == 512:
+        return "bge"
+    return "minilm"
+
+
 class Embedder:
     """ONNX 嵌入模型封装"""
 
@@ -17,6 +41,7 @@ class Embedder:
         self._session: ort.InferenceSession | None = None
         self._tokenizer: Tokenizer | None = None
         self._dim: int = 0
+        self._model_type: str = "minilm"  # "bge" | "minilm"
 
     @property
     def dim(self) -> int:
@@ -24,6 +49,13 @@ class Embedder:
         if self._dim == 0:
             self._load()
         return self._dim
+
+    @property
+    def model_type(self) -> str:
+        """模型类型标识"""
+        if self._session is None:
+            self._load()
+        return self._model_type
 
     def _load(self):
         """加载模型和分词器"""
@@ -34,7 +66,8 @@ class Embedder:
             model_file = onnx_path / "model.onnx"
         if not model_file.exists():
             raise FileNotFoundError(
-                f"ONNX 模型未找到: {onnx_path}\n请下载模型到 {onnx_path}/ 目录"
+                f"ONNX 模型未找到: {onnx_path}\n"
+                "请下载模型到 {onnx_path}/ 目录"
             )
 
         self._session = ort.InferenceSession(
@@ -49,51 +82,77 @@ class Embedder:
 
         self._tokenizer = Tokenizer.from_file(str(tokenizer_path))
 
-        # 获取输出维度
-        output_shape = self._session.get_outputs()[0].shape
-        self._dim = (
-            output_shape[-1] if isinstance(output_shape[-1], int) else 384
-        )
+        # 自动检测模型类型
+        self._model_type = _detect_model_type(self._session)
+        self._dim = self._session.get_outputs()[0].shape[-1]
+        if not isinstance(self._dim, int):
+            self._dim = 384  # 兜底
+
+    def _build_inputs(self, ids: list[int], mask: list[int]) -> dict:
+        """根据模型类型构造 ONNX 推理输入 dict"""
+        inputs = {
+            "input_ids": np.array([ids], dtype=np.int64),
+            "attention_mask": np.array([mask], dtype=np.int64),
+        }
+        if self._model_type == "minilm":
+            inputs["token_type_ids"] = np.array(
+                [[0] * len(ids)], dtype=np.int64
+            )
+        return inputs
+
+    def _build_batch_inputs(
+        self, batch_ids: list[list[int]], batch_mask: list[list[int]]
+    ) -> dict:
+        """构造 batch 推理输入 dict"""
+        inputs = {
+            "input_ids": np.array(batch_ids, dtype=np.int64),
+            "attention_mask": np.array(batch_mask, dtype=np.int64),
+        }
+        if self._model_type == "minilm":
+            inputs["token_type_ids"] = np.zeros(
+                (len(batch_ids), len(batch_ids[0])), dtype=np.int64
+            )
+        return inputs
+
+    def _pool(
+        self,
+        token_embeddings: np.ndarray,
+        attention_mask: np.ndarray,
+    ) -> np.ndarray:
+        """池化 + L2 归一化
+
+        - BGE 模型：取 [CLS] token（位置 0）
+        - MiniLM 模型：均值池化
+        """
+        if self._model_type == "bge":
+            # BGE 论文推荐：CLS token + L2 归一化
+            pooled = token_embeddings[:, 0, :]
+        else:
+            # MiniLM / sentence-transformers：均值池化
+            mask_expanded = np.expand_dims(attention_mask, axis=-1)
+            mask_expanded = np.broadcast_to(
+                mask_expanded, token_embeddings.shape
+            )
+            sum_embeddings = np.sum(token_embeddings * mask_expanded, axis=1)
+            sum_mask = np.clip(
+                mask_expanded.sum(axis=1), a_min=1e-9, a_max=None
+            )
+            pooled = sum_embeddings / sum_mask
+
+        # L2 归一化（两个模型都做）
+        norm = np.linalg.norm(pooled, axis=-1, keepdims=True)
+        return pooled / np.clip(norm, a_min=1e-9, a_max=None)
 
     def embed(self, text: str) -> list[float]:
         """单条文本嵌入"""
         if self._session is None:
             self._load()
 
-        # 分词
         encoded = self._tokenizer.encode(text)
+        inputs = self._build_inputs(encoded.ids, encoded.attention_mask)
+        outputs = self._session.run(None, inputs)
 
-        # 准备输入
-        input_ids = np.array([encoded.ids], dtype=np.int64)
-        attention_mask = np.array([encoded.attention_mask], dtype=np.int64)
-        token_type_ids = np.array(
-            [getattr(encoded, "type_ids", [0] * len(encoded.ids))],
-            dtype=np.int64,
-        )
-
-        # 推理
-        outputs = self._session.run(
-            None,
-            {
-                "input_ids": input_ids,
-                "attention_mask": attention_mask,
-                "token_type_ids": token_type_ids,
-            },
-        )
-
-        # 平均池化 + 归一化
-        token_embeddings = outputs[0]  # (1, seq_len, dim)
-        mask_expanded = np.expand_dims(encoded.attention_mask, axis=-1)
-        mask_expanded = np.broadcast_to(mask_expanded, token_embeddings.shape)
-
-        sum_embeddings = np.sum(token_embeddings * mask_expanded, axis=1)
-        sum_mask = np.clip(mask_expanded.sum(axis=1), a_min=1e-9, a_max=None)
-        pooled = sum_embeddings / sum_mask
-
-        # L2 归一化
-        norm = np.linalg.norm(pooled, axis=1, keepdims=True)
-        normalized = pooled / np.clip(norm, a_min=1e-9, a_max=None)
-
+        normalized = self._pool(outputs[0], inputs["attention_mask"])
         return normalized[0].tolist()
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
@@ -110,49 +169,23 @@ class Embedder:
         encodings = [self._tokenizer.encode(text) for text in texts]
         max_len = max(len(e.ids) for e in encodings)
 
-        # 填充到相同长度，构造 batch 输入 (batch_size, max_len)
+        # 填充到相同长度，构造 batch 输入
         batch_ids = []
         batch_mask = []
-        batch_type_ids = []
 
         for encoded in encodings:
             pad_len = max_len - len(encoded.ids)
             ids = encoded.ids + [0] * pad_len
             mask = encoded.attention_mask + [0] * pad_len
-            type_ids = (
-                getattr(encoded, "type_ids", [0] * len(encoded.ids))
-                + [0] * pad_len
-            )
-
             batch_ids.append(ids)
             batch_mask.append(mask)
-            batch_type_ids.append(type_ids)
 
-        input_ids = np.array(batch_ids, dtype=np.int64)
-        attention_mask = np.array(batch_mask, dtype=np.int64)
-        token_type_ids = np.array(batch_type_ids, dtype=np.int64)
+        inputs = self._build_batch_inputs(batch_ids, batch_mask)
+        outputs = self._session.run(None, inputs)
 
-        # 单次 batch 推理
-        outputs = self._session.run(
-            None,
-            {
-                "input_ids": input_ids,
-                "attention_mask": attention_mask,
-                "token_type_ids": token_type_ids,
-            },
-        )
-
-        # 平均池化 + L2 归一化（逐样本）
+        # 逐样本池化（batch 内长度不一致，mask 逐行不同）
         token_embeddings = outputs[0]  # (batch_size, max_len, dim)
-        mask_expanded = np.expand_dims(attention_mask, axis=-1)
-        mask_expanded = np.broadcast_to(mask_expanded, token_embeddings.shape)
-
-        sum_embeddings = np.sum(token_embeddings * mask_expanded, axis=1)
-        sum_mask = np.clip(mask_expanded.sum(axis=1), a_min=1e-9, a_max=None)
-        pooled = sum_embeddings / sum_mask
-
-        # L2 归一化
-        norms = np.linalg.norm(pooled, axis=1, keepdims=True)
-        normalized = pooled / np.clip(norms, a_min=1e-9, a_max=None)
+        attention_mask = np.array(batch_mask, dtype=np.int64)
+        normalized = self._pool(token_embeddings, attention_mask)
 
         return normalized.tolist()
