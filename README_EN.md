@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-> v0.5.8
+> v0.5.9
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -84,6 +84,7 @@ agent_memory_lite/
 └── tools/          # Data migration tools
 tests/              # Tests
 dicts/              # Custom jieba dictionaries
+hermes-plugin/      # Hermes Memory Provider adapter plugin
 models/embedding/   # ONNX embedding model (download separately)
 ```
 
@@ -114,17 +115,21 @@ Please install Agent Memory Lite for me. Steps:
    — If yes, download the ONNX quantized model from hf-mirror.com to models/embedding/ for semantic search
    — If no, skip this step; semantic search will gracefully degrade to keyword search without the model
 
-5. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
+5. Ask the user to choose an install method:
+   — **Hermes Memory Provider plugin (recommended)**: Run `cp -r ~/Desktop/Agent-Memory-Lite/hermes-plugin/ ~/.hermes/plugins/agent-memory-lite/`, then follow the [Adapter Guide](agent-memory-lite-hermes-adapter-guide.md) for the remaining steps
+   — **MCP Server**: Continue with steps 6–8 below
+
+6. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
    agent-memory-lite:
      args: []
      command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
-6. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
+7. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
    exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
-7. Make the wrapper executable
+8. Make the wrapper executable
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 Tell me when done.
@@ -149,17 +154,21 @@ Please install Agent Memory Lite for me. Steps:
    — If yes, download the ONNX quantized model from hf-mirror.com to models/embedding/ for semantic search
    — If no, skip this step; semantic search will gracefully degrade to keyword search without the model
 
-5. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
+5. Ask the user to choose an install method:
+   — **Hermes Memory Provider plugin (recommended)**: Run `cp -r ~/Desktop/Agent-Memory-Lite/hermes-plugin/ ~/.hermes/plugins/agent-memory-lite/`, then follow the [Adapter Guide](agent-memory-lite-hermes-adapter-guide.md) for the remaining steps
+   — **MCP Server**: Continue with steps 6–8 below
+
+6. Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
    agent-memory-lite:
      args: []
      command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
-6. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
+7. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
    #!/bin/bash
    cd ~/Desktop/Agent-Memory-Lite
    exec uv run python -m agent_memory_lite.entrypoints.mcp_server
 
-7. Make the wrapper executable
+8. Make the wrapper executable
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 Tell me when done.
