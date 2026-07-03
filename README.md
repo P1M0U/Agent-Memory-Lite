@@ -62,10 +62,11 @@ Agent 框架（如 Claude Code）通常自带会话级记忆来处理**当前会
 ## 特性
 
 - **中文 FTS5 搜索** — jieba 分词 + SQLite FTS5，写入和查询用同一套分词器，token 完全对齐
-- **语义搜索** — 本地 ONNX 嵌入模型（~113MB），可选安装，不依赖外部服务
+- **语义搜索** — 本地 ONNX 嵌入模型（~24MB 起），可选安装，支持双模自动识别
 - **批量嵌入推理** — ONNX Runtime batch 推理，大规模记忆导入性能更好
 - **混合搜索** — 关键词 + 语义加权排序，兼顾精确和模糊
 - **MCP Server** — 标准协议，10 个工具，可接入任何支持 MCP 的 Agent
+- **Hermes Memory Provider 插件** — 进程内直接调用，自动同步内置 memory 工具写入，工具不重复
 - **CLI 工具** — 10 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex），方便脚本集成
 - **数据迁移** — 支持从 holographic memory 导入，支持为已有记忆补充向量
 - **内容安全防护** — 自动截断超长内容（8000 字符），防止搜索质量下降

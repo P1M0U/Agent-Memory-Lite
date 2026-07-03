@@ -62,10 +62,11 @@ What this enables:
 ## Features
 
 - **Chinese FTS5 Search** — jieba tokenization + SQLite FTS5, same tokenizer for write and query, token-aligned
-- **Semantic Search** — Local ONNX embedding model (~113MB), optional install, no external services
+- **Semantic Search** — Local ONNX embedding model (~24MB min), optional install, dual-mode auto-detection
 - **Batch Embedding Inference** — ONNX Runtime batch inference for better performance on large-scale memory imports
 - **Hybrid Search** — Keyword + semantic weighted ranking, balancing precision and recall
 - **MCP Server** — Standard protocol, 10 tools, works with any MCP-compatible Agent
+- **Hermes Memory Provider Plugin** — In-process direct calls, auto-sync built-in memory writes, no tool duplication
 - **CLI Tool** — 10 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex) for scripting and automation
 - **Data Migration** — Import from holographic memory, generate embeddings for existing memories
 - **Content Validation** — Auto-truncation of overly long content (8000 chars) to prevent search quality degradation
