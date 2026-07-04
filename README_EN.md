@@ -12,66 +12,60 @@ English | [中文](README.md)
 ![MCP](https://img.shields.io/badge/MCP-Server-green)
 ![uv](https://img.shields.io/badge/uv-Package--Mgr-orange)
 ![License](https://img.shields.io/badge/License-AGPLv3-blue)
+![Platform](https://img.shields.io/badge/Platform-Claude%20Code%20|%20Cursor%20|%20Cline%20|%20Hermes-purple)
+![Model](https://img.shields.io/badge/Embeddings-Optional,~24MB+-lightgrey)
+![Stars](https://img.shields.io/github/stars/P1M0U/Agent-Memory-Lite?style=social)
+
+> Give your AI Agent a long-term memory that never forgets.
+> One command to connect, zero API cost, 100% local storage.
 
 Lightweight, Chinese-friendly Agent memory system with local semantic search. Built on SQLite + FTS5 + jieba tokenization + ONNX embeddings — zero API calls.
 
-## Why This Exists
+## Quick Start (30 seconds)
 
-### Agent Built-in Memory vs. Agent Memory Lite
+```bash
+git clone https://github.com/P1M0U/Agent-Memory-Lite.git && cd Agent-Memory-Lite
+uv sync
 
-Agent frameworks (e.g., Claude Code) ship with session-scoped memory that handles **in-session context**. This project addresses a different layer:
-
-| Dimension | Agent Built-in Memory | Agent Memory Lite |
-|-----------|----------------------|-------------------|
-| **Scope** | Session-level context | Cross-session long-term memory |
-| **Search** | FTS5 (framework default tokenizer) | FTS5 (jieba custom CJK tokenizer) |
-| **Semantic Search** | No | Optional ONNX local semantic search |
-| **Auto Dedup** | No | Enabled by default |
-| **Batch Delete** | No | By-category + clear-all |
-| **Data Independence** | Framework-locked | Standalone `.db`, portable & backup-ready |
-| **Multi-Agent Sharing** | N/A | Same memory shared across multiple MCP Agents |
-
-### Cross-Agent Memory Hub
-
-The unique value of this project is **framework-agnostic memory**. One `.db` file can be shared by any MCP-compatible Agent or IDE (Claude Code, Claude Desktop, Cursor, Cline, etc.):
-
-```
-┌──────────┐  ┌──────────┐  ┌──────────┐
-│ Claude   │  │ Cursor   │  │ Cline    │  ... any MCP-compatible Agent
-│  Code    │  │          │  │          │
-└────┬─────┘  └────┬─────┘  └────┬─────┘
-     │             │             │
-     └─────────────┼─────────────┘
-                   │ MCP Protocol (stdio)
-            ┌──────┴──────┐
-            │ Agent Memory │
-            │     Lite     │
-            └──────┬──────┘
-                   │
-            ┌──────┴──────┐
-            │  memory.db  │  Standalone storage — backup, migrate, analyze
-            └─────────────┘
+# Store a memory, then search it
+uv run aml store "User prefers Docker for deployment" -c user_pref
+uv run aml search "Docker"
+# Output: #1  user_pref
+#         User prefers Docker for deployment
 ```
 
-What this enables:
-- Memories stored via Claude Code remain accessible when switching to Cursor
-- User preferences learned in one IDE benefit another
-- Memory data survives tool upgrades — independent from any single tool
-- One memory store becomes a true "cross-tool long-term knowledge base"
+## Who Is This For?
+
+- 🤖 Developers using AI coding assistants like Claude Code, Cursor, Cline, or Hermes
+- 🇨🇳 Applications that need high-quality Chinese tokenization (jieba-powered)
+- 🔒 Teams with data compliance requirements (100% local SQLite storage)
+- 💰 Teams that don't want to pay per-token embedding API costs (local ONNX inference)
+- 🔗 Sharing the same long-term memory across multiple AI tools
+
+## Why Agent Memory Lite?
+
+| Feature | Agent Memory Lite | Mem0 | Built-in Memory |
+|---------|-------------------|------|----------------|
+| Chinese Tokenization | ✅ jieba custom | Default | Default |
+| Local Deployment | ✅ SQLite single file | ❌ API required | ✅ Framework-locked |
+| Embedding Model | ✅ ONNX local ~24MB | OpenAI API | None |
+| MCP Protocol | ✅ Standard MCP Server | ❌ | ❌ |
+| Cross-Agent Sharing | ✅ One .db file | ❌ | ❌ |
+| Database Backup | ✅ Copy one file | ❌ | ❌ |
+| Cost | 💰 Zero API fees | 💰💸 Per-token billing | 💰 Zero |
 
 ## Features
 
 - **Chinese FTS5 Search** — jieba tokenization + SQLite FTS5, same tokenizer for write and query, token-aligned
 - **Semantic Search** — Local ONNX embedding model (~24MB min), optional install, dual-mode auto-detection
-- **Batch Embedding Inference** — ONNX Runtime batch inference for better performance on large-scale memory imports
 - **Hybrid Search** — Keyword + semantic weighted ranking, balancing precision and recall
 - **MCP Server** — Standard protocol, 10 tools, works with any MCP-compatible Agent
 - **Hermes Memory Provider Plugin** — In-process direct calls, auto-sync built-in memory writes, no tool duplication
-- **CLI Tool** — 10 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex) for scripting and automation
+- **CLI Tool** — 10 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex)
 - **Data Migration** — Import from holographic memory, generate embeddings for existing memories
-- **Content Validation** — Auto-truncation of overly long content (8000 chars) to prevent search quality degradation
-- **Auto Deduplication** — Skips duplicate content by default, configurable via parameter
+- **Auto Deduplication** — Skips duplicate content by default
 - **Database Maintenance** — VACUUM, reindex, batch delete by category
+- **Content Validation** — Auto-truncation of overly long content (8000 chars)
 - **Thread-safe** — check_same_thread=False for multi-agent concurrent access
 
 ---

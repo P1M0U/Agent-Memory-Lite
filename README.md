@@ -12,66 +12,60 @@
 ![MCP](https://img.shields.io/badge/MCP-Server-green)
 ![uv](https://img.shields.io/badge/uv-包管理-orange)
 ![License](https://img.shields.io/badge/License-AGPLv3-blue)
+![Platform](https://img.shields.io/badge/平台-Claude%20Code%20|%20Cursor%20|%20Cline%20|%20Hermes-purple)
+![模型可选](https://img.shields.io/badge/嵌入模型-可选,~24MB起-lightgrey)
+![Stars](https://img.shields.io/github/stars/P1M0U/Agent-Memory-Lite?style=social)
+
+> 让你的 AI Agent 拥有永不遗忘的长期记忆。
+> 一行命令接入，零 API 费用，数据 100% 本地存储。
 
 轻量级中文友好的 Agent 记忆增强系统。基于 SQLite + FTS5 + jieba 分词 + 本地 ONNX 向量搜索，零 API 调用。
 
-## 设计初衷
+## 快速体验（30 秒上手）
 
-### 与 Agent 内置记忆的区别
+```bash
+git clone https://github.com/P1M0U/Agent-Memory-Lite.git && cd Agent-Memory-Lite
+uv sync
 
-Agent 框架（如 Claude Code）通常自带会话级记忆来处理**当前会话内的上下文**。本项目解决的是另一个层次的问题：
-
-| 维度 | Agent 内置记忆 | Agent Memory Lite |
-|------|---------------|-------------------|
-| **记忆范围** | 会话级上下文 | 跨会话长期记忆 |
-| **搜索方式** | FTS5（框架默认分词） | FTS5（jieba 定制中文分词） |
-| **语义搜索** | 无 | 可选 ONNX 本地语义搜索 |
-| **自动去重** | 无 | 默认开启 |
-| **批量删除** | 无 | 按分类批量 + 清空 |
-| **数据独立性** | 绑定框架，无法外部访问 | 独立 `.db` 文件，可备份迁移 |
-| **多 Agent 共享** | 不适用 | 同一份记忆供多个 Agent 读写 |
-
-### 跨 Agent 记忆中枢
-
-本项目的独特价值在于**不绑定任何 Agent 框架**。同一份 `.db` 文件可以被多个 MCP 兼容的 Agent（如 Claude Code、Claude Desktop、Cursor、Cline 等）共享：
-
-```
-┌──────────┐  ┌──────────┐  ┌──────────┐
-│ Claude   │  │ Cursor   │  │ Cline    │  ... 任意 MCP 兼容 Agent
-│  Code    │  │          │  │          │
-└────┬─────┘  └────┬─────┘  └────┬─────┘
-     │             │             │
-     └─────────────┼─────────────┘
-                   │ MCP 协议 (stdio)
-            ┌──────┴──────┐
-            │ Agent Memory │
-            │     Lite     │
-            └──────┬──────┘
-                   │
-            ┌──────┴──────┐
-            │  memory.db  │  独立存储，可备份 / 迁移 / 分析
-            └─────────────┘
+# 存一条记忆，搜一条记忆
+uv run aml store "用户偏好使用 Docker 部署" -c user_pref
+uv run aml search "Docker"
+# 输出: #1  user_pref
+#        用户偏好使用 Docker 部署
 ```
 
-这意味着：
-- 用 Claude Code 记下的事，切换到 Cursor 后仍然可查
-- 一个 IDE 学到的用户偏好，在另一个 IDE 中也能利用
-- 记忆数据独立于工具版本，不会因升级丢失
-- 一份记忆在多个开发工具间形成真正的"跨工具长期知识库"
+## 适用场景
+
+- 🤖 用 Claude Code / Cursor / Cline / Hermes 等 AI 编程助手的开发者
+- 🇨🇳 需要高质量中文分词的记忆场景（jieba 定制分词）
+- 🔒 数据不能上云的合规要求（100% 本地 SQLite 存储）
+- 💰 不想为 Embedding API 付费的团队（本地 ONNX 推理）
+- 🔗 多个 AI 工具之间共享同一份长期记忆
+
+## 为什么选择 Agent Memory Lite？
+
+| 对比维度 | Agent Memory Lite | Mem0 | 内置记忆 |
+|---------|-------------------|------|---------|
+| 中文分词 | ✅ jieba 定制 | 默认分词 | 默认分词 |
+| 本地部署 | ✅ SQLite 单文件 | ❌ 需 API | ✅ 绑定框架 |
+| 嵌入模型 | ✅ ONNX 本地 ~24MB | OpenAI API | 无 |
+| MCP 协议 | ✅ 标准 MCP Server | ❌ | ❌ |
+| 跨 Agent 共享 | ✅ 一份 .db 通用 | ❌ | ❌ |
+| 数据库可备份 | ✅ 单文件复制即可 | ❌ | ❌ |
+| 费用 | 💰 零 API 费用 | 💰💸 按 token 计费 | 💰 零 |
 
 ## 特性
 
 - **中文 FTS5 搜索** — jieba 分词 + SQLite FTS5，写入和查询用同一套分词器，token 完全对齐
 - **语义搜索** — 本地 ONNX 嵌入模型（~24MB 起），可选安装，支持双模自动识别
-- **批量嵌入推理** — ONNX Runtime batch 推理，大规模记忆导入性能更好
 - **混合搜索** — 关键词 + 语义加权排序，兼顾精确和模糊
 - **MCP Server** — 标准协议，10 个工具，可接入任何支持 MCP 的 Agent
 - **Hermes Memory Provider 插件** — 进程内直接调用，自动同步内置 memory 工具写入，工具不重复
-- **CLI 工具** — 10 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex），方便脚本集成
+- **CLI 工具** — 10 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex）
 - **数据迁移** — 支持从 holographic memory 导入，支持为已有记忆补充向量
-- **内容安全防护** — 自动截断超长内容（8000 字符），防止搜索质量下降
-- **自动去重** — 默认跳过重复内容，可通过参数关闭
+- **自动去重** — 默认跳过重复内容
 - **数据库维护** — VACUUM 回收空间、reindex 重建索引、clean 批量删除
+- **内容安全防护** — 自动截断超长内容（8000 字符）
 - **线程安全** — check_same_thread=False，支持多 Agent 并发访问
 
 ---
