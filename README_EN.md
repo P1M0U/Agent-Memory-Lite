@@ -12,8 +12,6 @@ English | [中文](README.md)
 ![MCP](https://img.shields.io/badge/MCP-Server-green)
 ![uv](https://img.shields.io/badge/uv-Package--Mgr-orange)
 ![License](https://img.shields.io/badge/License-AGPLv3-blue)
-![Platform](https://img.shields.io/badge/Platform-Claude%20Code%20|%20Cursor%20|%20Cline%20|%20Hermes-purple)
-![Model](https://img.shields.io/badge/Embeddings-Optional,~24MB+-lightgrey)
 ![Stars](https://img.shields.io/github/stars/P1M0U/Agent-Memory-Lite?style=social)
 
 > Give your AI Agent a long-term memory that never forgets.

@@ -12,8 +12,6 @@
 ![MCP](https://img.shields.io/badge/MCP-Server-green)
 ![uv](https://img.shields.io/badge/uv-包管理-orange)
 ![License](https://img.shields.io/badge/License-AGPLv3-blue)
-![Platform](https://img.shields.io/badge/平台-Claude%20Code%20|%20Cursor%20|%20Cline%20|%20Hermes-purple)
-![模型可选](https://img.shields.io/badge/嵌入模型-可选,~24MB起-lightgrey)
 ![Stars](https://img.shields.io/github/stars/P1M0U/Agent-Memory-Lite?style=social)
 
 > 让你的 AI Agent 拥有永不遗忘的长期记忆。
