@@ -135,7 +135,7 @@ Tell me when done.
 Please install Agent Memory Lite for me. Steps:
 
 1. Clone the repo to ~/Desktop/Agent-Memory-Lite/
-   git clone https://gitee.com/pimou/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
+   git clone https://gitee.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
 
 2. Enter the project and install dependencies with uv (use Tsinghua mirror for speed in China)
    cd ~/Desktop/Agent-Memory-Lite
@@ -334,4 +334,4 @@ Copyright © 2026 [P1M0U](https://github.com/P1M0U)
 
 - Email: [p1m0u@foxmail.com](mailto:p1m0u@foxmail.com)
 - GitHub: [https://github.com/P1M0U/Agent-Memory-Lite](https://github.com/P1M0U/Agent-Memory-Lite)
-- Gitee: [https://gitee.com/pimou/Agent-Memory-Lite](https://gitee.com/pimou/Agent-Memory-Lite)
+- Gitee: [https://gitee.com/P1M0U/Agent-Memory-Lite](https://gitee.com/P1M0U/Agent-Memory-Lite)

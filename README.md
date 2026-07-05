@@ -135,7 +135,7 @@ models/embedding/   # ONNX 嵌入模型（需单独下载）
 请帮我安装 Agent Memory Lite 记忆系统，步骤如下：
 
 1. 克隆仓库到 ~/Desktop/Agent-Memory-Lite/
-   git clone https://gitee.com/pimou/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
+   git clone https://gitee.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
 
 2. 进入项目目录，用 uv 安装依赖（使用清华镜像加速）
    cd ~/Desktop/Agent-Memory-Lite
@@ -334,4 +334,4 @@ Copyright © 2026 [P1M0U](https://github.com/P1M0U)
 
 - 电子邮箱：[p1m0u@foxmail.com](mailto:p1m0u@foxmail.com)
 - GitHub：[https://github.com/P1M0U/Agent-Memory-Lite](https://github.com/P1M0U/Agent-Memory-Lite)
-- Gitee：[https://gitee.com/pimou/Agent-Memory-Lite](https://gitee.com/pimou/Agent-Memory-Lite)
+- Gitee：[https://gitee.com/P1M0U/Agent-Memory-Lite](https://gitee.com/P1M0U/Agent-Memory-Lite)
