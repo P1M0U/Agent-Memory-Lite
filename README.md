@@ -11,7 +11,7 @@
 ![sqlite-vec](https://img.shields.io/badge/sqlite--vec-向量搜索-purple)
 ![MCP](https://img.shields.io/badge/MCP-Server-green)
 ![uv](https://img.shields.io/badge/uv-包管理-orange)
-![License](https://img.shields.io/badge/License-AGPLv3-blue)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
 > 让你的 AI Agent 拥有永不遗忘的长期记忆。
 > 一行命令接入，零 API 费用，数据 100% 本地存储。
@@ -324,7 +324,7 @@ uv run python -m agent_memory_lite.entrypoints.cli vacuum
 
 ## License
 
-[AGPLv3](LICENSE)
+[Apache 2.0](LICENSE)
 
 Copyright © 2026 [P1M0U](https://github.com/P1M0U)
 

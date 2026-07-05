@@ -11,7 +11,7 @@ English | [中文](README.md)
 ![sqlite-vec](https://img.shields.io/badge/sqlite--vec-Vector-purple)
 ![MCP](https://img.shields.io/badge/MCP-Server-green)
 ![uv](https://img.shields.io/badge/uv-Package--Mgr-orange)
-![License](https://img.shields.io/badge/License-AGPLv3-blue)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
 > Give your AI Agent a long-term memory that never forgets.
 > One command to connect, zero API cost, 100% local storage.
@@ -324,7 +324,7 @@ After heavy deletions, SQLite does not automatically reclaim disk space. The `va
 
 ## License
 
-[AGPLv3](LICENSE)
+[Apache 2.0](LICENSE)
 
 Copyright © 2026 [P1M0U](https://github.com/P1M0U)
 
