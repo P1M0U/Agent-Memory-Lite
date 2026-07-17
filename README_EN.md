@@ -2,7 +2,7 @@
 
 English | [中文](README.md)
 
-> v0.6.0
+> v0.6.7
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -56,9 +56,9 @@ uv run aml search "Docker"
 - **Chinese FTS5 Search** — jieba tokenization + SQLite FTS5, same tokenizer for write and query, token-aligned
 - **Semantic Search** — Local ONNX embedding model (~24MB min), optional install, dual-mode auto-detection
 - **Hybrid Search** — Keyword + semantic weighted ranking, balancing precision and recall
-- **MCP Server** — Standard protocol, 10 tools, works with any MCP-compatible Agent
-- **Hermes Memory Provider Plugin** — In-process direct calls, auto-sync built-in memory writes, no tool duplication
-- **CLI Tool** — 10 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex)
+- **MCP Server** — Standard protocol, 12 tools, works with any MCP-compatible Agent
+- **Multi-Agent Auto-Sync Plugins** — Claude Code / LangChain / CrewAI / AutoGen / Hermes, all supported
+- **CLI Tool** — 12 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex / cleanup / migrate)
 - **Data Migration** — Import from holographic memory, generate embeddings for existing memories
 - **Auto Deduplication** — Skips duplicate content by default
 - **Database Maintenance** — VACUUM, reindex, batch delete by category
@@ -70,14 +70,23 @@ uv run aml search "Docker"
 ## Project Structure
 
 ```
-agent_memory_lite/
-├── core/           # Core business logic (storage, search, tokenization, embeddings)
-├── entrypoints/    # Public entry points (CLI and MCP Server)
-└── tools/          # Data migration tools
-tests/              # Tests
-dicts/              # Custom jieba dictionaries
-hermes_plugin/      # Hermes Memory Provider adapter plugin
-models/embedding/   # ONNX embedding model (download separately)
+agent_memory_lite/        # Core memory engine
+├── core/                 # Storage, search, tokenization, embeddings
+├── entrypoints/          # CLI and MCP Server
+├── plugins/              # Multi-agent auto-sync plugins
+│   ├── base.py           # Plugin base class
+│   ├── claude_code/      # Claude Code hook plugin
+│   ├── langchain/        # LangChain BaseMemory component
+│   ├── crewai/           # CrewAI Memory component
+│   ├── autogen/          # AutoGen memory_provider
+│   └── hermes/           # Hermes MemoryProvider core
+│       └── provider.py   # on_memory_write auto-sync
+└── tools/                # Data migration tools
+hermes_plugin/            # Hermes plugin entry (plugin.yaml + re-export)
+installers/               # One-click install scripts
+tests/                    # Tests
+dicts/                    # Custom jieba dictionaries
+models/embedding/         # ONNX embedding model (download separately)
 ```
 
 ---
@@ -168,6 +177,56 @@ Please install Agent Memory Lite for me. Steps:
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 Tell me when done.
+```
+
+---
+
+---
+
+## Multi-Agent Auto Memory Sync (Plugin System)
+
+Beyond MCP's active-call mode, Agent Memory Lite provides **auto-sync plugins** — the Agent automatically manages long-term memory without explicitly calling memory tools.
+
+### Claude Code (one-click install)
+
+```bash
+bash installers/install_claude_code.sh
+```
+
+Installs 3 hooks: inject memory context before prompts, capture writes, and persist at session end.
+
+### LangChain (one-line import)
+
+```python
+from agent_memory_lite.plugins.langchain import AMLMemory
+
+agent = create_react_agent(llm, tools, memory=AMLMemory())
+```
+
+### CrewAI (one-line import)
+
+```python
+from agent_memory_lite.plugins.crewai import AMLCrewMemory
+
+crew = Crew(agents=[...], tasks=[...], memory=AMLCrewMemory())
+```
+
+### AutoGen (one-line import)
+
+```python
+from agent_memory_lite.plugins.autogen import AMLAutoGenMemory
+
+assistant = AssistantAgent(name="agent", memory_provider=AMLAutoGenMemory())
+```
+
+### Generic Python API
+
+```python
+from agent_memory_lite.plugins import create_plugin
+
+plugin = create_plugin()
+plugin.auto_store("User prefers Docker")
+results = plugin.auto_search("deployment tools")
 ```
 
 ---
@@ -276,19 +335,22 @@ uv run python -m agent_memory_lite.entrypoints.cli vacuum
 
 ### MCP Server (Agent auto-calls)
 
-Once configured, the Agent can call these 9 tools directly:
+Once configured, the Agent can call these 12 tools directly:
 
 | Tool | Description |
 |------|-------------|
-| `store_memory` | Store a memory (with dedup) |
+| `store_memory` | Store a memory (dedup, TTL expiry, importance) |
 | `search_memory` | Search memories (keyword/semantic/hybrid) |
 | `get_memory` | Get a specific memory |
 | `update_memory` | Update a memory |
 | `delete_memory` | Delete a memory |
 | `delete_memories_by_category` | Batch delete by category |
-| `list_memories` | List memories |
-| `memory_stats` | View statistics |
+| `list_memories` | List memories (exclude expired) |
+| `memory_stats` | View statistics (including expired count) |
 | `reindex_memories` | Rebuild FTS5 token index |
+| `cleanup_memories` | Clean up expired memories |
+| `store_memories_batch` | Batch store memories |
+| `search_memories_batch` | Batch search multiple queries |
 
 ### Data Migration
 

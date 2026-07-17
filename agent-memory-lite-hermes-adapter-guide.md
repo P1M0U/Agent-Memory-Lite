@@ -150,15 +150,18 @@ uv pip install --python ~/.hermes/hermes-agent/venv/bin/python jieba tokenizers
 Failed to load provider: No module named 'agent_memory_lite'
 ```
 
-**原因：** Agent-Memory-Lite 路径未正确添加到 sys.path
+**原因：** agent_memory_lite 未正确安装到 Python 路径
 
-**解决：** 检查 `~/.hermes/plugins/agent-memory-lite/__init__.py` 中的路径配置：
+**解决：** 确保 agent_memory_lite 已安装：
 
-```python
-_AGENT_MEMORY_LITE_DIR = Path.home() / "Desktop" / "Agent-Memory-Lite"
+```bash
+pip install -e ~/Desktop/Agent-Memory-Lite
 ```
 
-确保路径指向你的 Agent-Memory-Lite 项目目录。
+或通过环境变量指定项目路径：
+```bash
+export PYTHONPATH=~/Desktop/Agent-Memory-Lite:$PYTHONPATH
+```
 
 ---
 
@@ -234,23 +237,25 @@ Agent-Memory-Lite 默认已配置 WAL。
 
 ```
 ~/.hermes/
-├── config.yaml                          # 修改：memory.provider: agent-memory-lite
+├── config.yaml                                # 修改：memory.provider: agent-memory-lite
 ├── plugins/
 │   └── agent-memory-lite/
-│       ├── plugin.yaml                  # 插件元数据（从 hermes_plugin/ 复制）
-│       └── __init__.py                  # 适配器代码（从 hermes_plugin/ 复制）
+│       ├── plugin.yaml                        # 插件元数据（从 hermes_plugin/ 复制）
+│       └── __init__.py                        # 重导出入口
 └── ...
 
 ~/Desktop/Agent-Memory-Lite/
-├── agent_memory_lite/                   # 核心库
-├── hermes_plugin/                       # 适配器插件源码
-│   ├── plugin.yaml
-│   └── __init__.py
-├── models/embedding/                    # ONNX 嵌入模型（113MB，可选）
+├── agent_memory_lite/                         # 核心库
+│   └── plugins/hermes/
+│       └── provider.py                        # Hermes 适配器核心实现
+├── hermes_plugin/                             # Hermes 插件入口
+│   ├── plugin.yaml                            # 插件元数据（Hermes 发现入口）
+│   └── __init__.py                            # 重导出到 agent_memory_lite.plugins.hermes
+├── models/embedding/                          # ONNX 嵌入模型（可选）
 └── ...
 
 ~/.agent-memory/
-└── memory.db                            # SQLite 数据库（WAL 模式）
+└── memory.db                                  # SQLite 数据库（WAL 模式）
 ```
 
 ---
@@ -312,6 +317,7 @@ MemoryEngine.store()（镜像写入）
 
 ## 更新日志
 
+- **2026-07-17**：核心实现迁移至 `agent_memory_lite/plugins/hermes/provider.py`，`hermes_plugin/` 改为薄层重导出
 - **2026-07-02**：完成适配器开发和测试
 - **2026-07-02**：修复依赖缺失问题（jieba/tokenizers 未安装到 venv）
 - **2026-07-02**：验证自动同步功能正常工作
@@ -319,6 +325,6 @@ MemoryEngine.store()（镜像写入）
 
 ---
 
-**作者：** P1M0U + Hermes Agent
+**作者：** P1M0U
 **版本：** 1.0.0
-**许可：** AGPLv3
+**许可：** Apache 2.0

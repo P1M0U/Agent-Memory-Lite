@@ -1,0 +1,63 @@
+"""Claude Code UserPromptSubmit 钩子 — 自动注入记忆上下文
+
+用户在 Claude Code 中输入 prompt 时，自动检索相关记忆并注入到 prompt 末尾。
+Agent 完全无感 —— 它看到的是已经增强过的 prompt。
+
+配置方式（~/.claude/settings.json 或项目 .claude/settings.json）:
+
+{
+  "hooks": {
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "command": "python3 ~/.cli/agent-memory-lite/plugins/claude_code/inject_memory.py"
+      }]
+    }]
+  }
+}
+"""
+
+import json
+import sys
+from pathlib import Path
+
+# 将项目根添加到 Python 路径
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from agent_memory_lite.plugins.base import BasePlugin  # noqa: E402
+
+
+def main():
+    """读取 stdin 的钩子事件 JSON，检索相关记忆并注入到 prompt"""
+    try:
+        event = json.loads(sys.stdin.read())
+    except (json.JSONDecodeError, OSError):
+        # 无法读取事件视为无操作
+        print("", end="")
+        return
+
+    # 提取用户输入的 prompt
+    prompt = event.get("prompt", "")
+    if not prompt or len(prompt) < 3:
+        print("", end="")
+        return
+
+    plugin = BasePlugin()
+    try:
+        enhanced = plugin.inject_context(
+            current_prompt=prompt,
+            mode="hybrid",
+            limit=3,
+        )
+        # 返回增强后的 prompt（Claude Code 会替换原 prompt）
+        print(enhanced, end="")
+    except Exception:
+        # 检索失败不影响主流程，返回原始 prompt
+        print(prompt, end="")
+    finally:
+        plugin.close()
+
+
+if __name__ == "__main__":
+    main()

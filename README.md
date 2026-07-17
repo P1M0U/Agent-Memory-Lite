@@ -2,7 +2,7 @@
 
 [English](README_EN.md) | 中文
 
-> v0.6.0
+> v0.6.7
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
@@ -56,9 +56,9 @@ uv run aml search "Docker"
 - **中文 FTS5 搜索** — jieba 分词 + SQLite FTS5，写入和查询用同一套分词器，token 完全对齐
 - **语义搜索** — 本地 ONNX 嵌入模型（~24MB 起），可选安装，支持双模自动识别
 - **混合搜索** — 关键词 + 语义加权排序，兼顾精确和模糊
-- **MCP Server** — 标准协议，10 个工具，可接入任何支持 MCP 的 Agent
-- **Hermes Memory Provider 插件** — 进程内直接调用，自动同步内置 memory 工具写入，工具不重复
-- **CLI 工具** — 10 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex）
+- **MCP Server** — 标准协议，12 个工具，可接入任何支持 MCP 的 Agent
+- **多 Agent 自动同步插件** — Claude Code / LangChain / CrewAI / AutoGen / Hermes 开箱即用
+- **CLI 工具** — 12 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex / cleanup / migrate）
 - **数据迁移** — 支持从 holographic memory 导入，支持为已有记忆补充向量
 - **自动去重** — 默认跳过重复内容
 - **数据库维护** — VACUUM 回收空间、reindex 重建索引、clean 批量删除
@@ -70,14 +70,23 @@ uv run aml search "Docker"
 ## 项目结构
 
 ```
-agent_memory_lite/
-├── core/           # 核心业务逻辑（存储、搜索、分词、嵌入）
-├── entrypoints/    # 对外入口（CLI 和 MCP Server）
-└── tools/          # 数据迁移工具
-tests/              # 测试
-dicts/              # 自定义 jieba 词典
-hermes_plugin/      # Hermes Memory Provider 适配器插件
-models/embedding/   # ONNX 嵌入模型（需单独下载）
+agent_memory_lite/        # 核心记忆引擎
+├── core/                 # 存储、搜索、分词、嵌入
+├── entrypoints/          # CLI 和 MCP Server
+├── plugins/              # 多 Agent 自动同步插件
+│   ├── base.py           # 插件基类（auto_store / auto_search / inject_context）
+│   ├── claude_code/      # Claude Code 钩子插件
+│   ├── langchain/        # LangChain BaseMemory 组件
+│   ├── crewai/           # CrewAI Memory 组件
+│   ├── autogen/          # AutoGen memory_provider
+│   └── hermes/           # Hermes MemoryProvider 核心实现
+│       └── provider.py   # on_memory_write 自动同步
+└── tools/                # 数据迁移工具
+hermes_plugin/            # Hermes 插件入口（plugin.yaml + 重导出）
+installers/               # 一键安装脚本
+tests/                    # 测试
+dicts/                    # 自定义 jieba 词典
+models/embedding/         # ONNX 嵌入模型（需单独下载）
 ```
 
 ---
@@ -168,6 +177,54 @@ models/embedding/   # ONNX 嵌入模型（需单独下载）
    chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 完成后告诉我安装结果。
+```
+
+---
+
+## 多 Agent 自动记忆同步（插件系统）
+
+除了 MCP Server 的主动调用模式，Agent Memory Lite 还提供了**自动同步插件**——Agent 无需显式调用记忆工具即可自动管理长期记忆。
+
+### Claude Code（一键安装）
+
+```bash
+bash installers/install_claude_code.sh
+```
+
+安装后自动启用三条钩子：对话前检索记忆注入 prompt、写入文件时捕获记忆、会话结束时持久化。
+
+### LangChain（一行接入）
+
+```python
+from agent_memory_lite.plugins.langchain import AMLMemory
+
+agent = create_react_agent(llm, tools, memory=AMLMemory())
+```
+
+### CrewAI（一行接入）
+
+```python
+from agent_memory_lite.plugins.crewai import AMLCrewMemory
+
+crew = Crew(agents=[...], tasks=[...], memory=AMLCrewMemory())
+```
+
+### AutoGen（一行接入）
+
+```python
+from agent_memory_lite.plugins.autogen import AMLAutoGenMemory
+
+assistant = AssistantAgent(name="agent", memory_provider=AMLAutoGenMemory())
+```
+
+### 通用 Python API
+
+```python
+from agent_memory_lite.plugins import create_plugin
+
+plugin = create_plugin()
+plugin.auto_store("用户喜欢飞书")
+results = plugin.auto_search("协作工具")
 ```
 
 ---
@@ -276,19 +333,22 @@ uv run python -m agent_memory_lite.entrypoints.cli vacuum
 
 ### MCP Server（Agent 自动调用）
 
-配置完成后，Agent 可以直接调用以下 9 个工具：
+配置完成后，Agent 可以直接调用以下 12 个工具：
 
 | 工具名 | 说明 |
 |--------|------|
-| `store_memory` | 存储一条记忆（支持去重） |
+| `store_memory` | 存储一条记忆（支持去重、TTL 过期、重要性评分） |
 | `search_memory` | 搜索记忆（keyword/semantic/hybrid） |
 | `get_memory` | 获取指定记忆 |
 | `update_memory` | 更新记忆 |
 | `delete_memory` | 删除记忆 |
 | `delete_memories_by_category` | 按分类批量删除 |
-| `list_memories` | 列出记忆 |
-| `memory_stats` | 查看统计 |
+| `list_memories` | 列出记忆（排除过期） |
+| `memory_stats` | 查看统计（含过期记忆数） |
 | `reindex_memories` | 重建 FTS5 分词索引 |
+| `cleanup_memories` | 清理过期记忆 |
+| `store_memories_batch` | 批量存储记忆 |
+| `search_memories_batch` | 批量搜索多个查询 |
 
 ### 数据迁移
 
