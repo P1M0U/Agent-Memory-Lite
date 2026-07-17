@@ -21,13 +21,13 @@ Lightweight, Chinese-friendly Agent memory system with local semantic search —
 ## Quick Start (30 seconds)
 
 ```bash
-git clone https://github.com/P1M0U/Agent-Memory-Lite.git && cd Agent-Memory-Lite
-uv sync
+# Install via one-liner (installs to ~/.local/share/agent-memory-lite/)
+curl -fsSL https://github.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --mirror github
 
-# Store a memory, then search it
-uv run aml store "User prefers Docker for deployment" -c user_pref
-uv run aml search "Docker"
-# Output: #1  user_pref
+# Open a new terminal, then:
+aml store "User prefers Docker for deployment" -c user_pref
+aml search "Docker"
+# Output: #1  user_pref  score=0.2
 #         User prefers Docker for deployment
 ```
 
@@ -72,111 +72,110 @@ uv run aml search "Docker"
 ```
 agent_memory_lite/        # Core memory engine
 ├── core/                 # Storage, search, tokenization, embeddings
+├── dicts/                # Custom jieba dictionaries
 ├── entrypoints/          # CLI and MCP Server
 ├── plugins/              # Multi-agent auto-sync plugins
 │   ├── base.py           # Plugin base class
 │   ├── claude_code/      # Claude Code hook plugin
 │   ├── langchain/        # LangChain BaseMemory component
-│   ├── crewai/           # CrewAI Memory component
-│   ├── autogen/          # AutoGen memory_provider
+│   ├── crewai/           # CrewAI Memory component (WIP)
+│   ├── autogen/          # AutoGen memory_provider (WIP)
 │   └── hermes/           # Hermes MemoryProvider core
 │       └── provider.py   # on_memory_write auto-sync
 └── tools/                # Data migration tools
 hermes_plugin/            # Hermes plugin entry (plugin.yaml + re-export)
-installers/               # One-click install scripts
+installers/               # Claude Code installer script
 tests/                    # Tests
-dicts/                    # Custom jieba dictionaries
-models/embedding/         # ONNX embedding model (download separately)
+models/embedding/         # ONNX embedding model (auto-download)
+install.sh                # One-liner install script
 ```
 
 ---
 
 ## One-Click Install (Prompt for AI Agent)
 
-Copy the prompt below and send it to your AI Agent — it will handle clone, install, and config automatically.
+Copy the prompt below and send it to your AI Agent — it will handle the install automatically.
 
 > **💡 If you're using Hermes Agent**, we recommend installing via the **Memory Provider plugin** for a better integration experience (auto sync, in-process calls, tool deduplication). See [Hermes Memory Provider Adapter Guide](agent-memory-lite-hermes-adapter-guide.md).
 
-### Option A: Install from GitHub
+### Option A: One-Liner Script (Recommended)
+
+```
+Please install Agent Memory Lite for me, run:
+
+curl -fsSL https://github.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --mirror github --with-embedding
+
+Tell me the result when done.
+```
+
+### Option B: Install from GitHub
 
 ```
 Please install Agent Memory Lite for me. Steps:
 
-1. Clone the repo to ~/Desktop/Agent-Memory-Lite/
-   git clone https://github.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
+1. Clone and install
+   git clone --depth 1 https://github.com/P1M0U/Agent-Memory-Lite.git ~/.local/share/agent-memory-lite
+   cd ~/.local/share/agent-memory-lite
+   pip install -e .
 
-2. Enter the project and install dependencies with uv (use Tsinghua mirror for speed in China)
-   cd ~/Desktop/Agent-Memory-Lite
-   uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+2. Verify the installation works
+   python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-3. Verify the installation works
-   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
-
-4. Ask the user whether to download an embedding model (for semantic search), present these options:
+3. Ask the user whether to install embedding dependencies (for semantic search):
    — A. Skip (default) — semantic search degrades gracefully to keyword search
-   — B. paraphrase-multilingual-MiniLM-L12-v2 (~113MB, 384-dim, 50+ languages, best for mixed-language content)
-   — C. bge-small-zh-v1.5 (~24MB, 512-dim, Chinese-optimized, best for primarily Chinese, much smaller)
-   If user picks B or C, download the corresponding model from hf-mirror.com mirror to models/embedding/
+   — B. Install (onnxruntime + sqlite-vec, ~200MB)
 
-5. Ask the user to choose an install method, present these options:
-   — A. Hermes Memory Provider plugin (recommended) — Run `cp -r ~/Desktop/Agent-Memory-Lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite/`, then follow the [Adapter Guide](agent-memory-lite-hermes-adapter-guide.md) for the remaining steps (skip steps 6–8)
-   — B. MCP Server — Continue with steps 6–8 below
+4. If user picked B, run pip install -e ".[embedding]", then ask if they want to auto-download the ONNX model (~24MB):
+   python -c "from agent_memory_lite.core.embedder import ensure_model; print('ok' if ensure_model() else 'download failed')"
 
-6. (Only if user chose MCP Server) Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
+5. Ask the user to choose an install method:
+   — A. Hermes Memory Provider plugin (recommended) — Run `ln -s ~/.local/share/agent-memory-lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite`
+   — B. MCP Server — Continue with step 6
+
+6. (Only if user chose MCP Server) Add MCP Server config to ~/.hermes/config.yaml under mcp_servers:
    agent-memory-lite:
      args: []
-     command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: python -m agent_memory_lite.entrypoints.mcp_server
 
-7. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
-   #!/bin/bash
-   cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
+7. Set AML_HOME env var, append to ~/.bashrc or ~/.zshrc:
+   export AML_HOME="$HOME/.local/share/agent-memory-lite"
 
-8. Make the wrapper executable
-   chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
-
-Tell me when done.
+Tell me the result when done.
 ```
 
-### Option B: Install from Gitee (faster in China)
+### Option C: Install from Gitee (faster in China)
 
 ```
 Please install Agent Memory Lite for me. Steps:
 
-1. Clone the repo to ~/Desktop/Agent-Memory-Lite/
-   git clone https://gitee.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
+1. Clone and install
+   git clone --depth 1 https://gitee.com/P1M0U/Agent-Memory-Lite.git ~/.local/share/agent-memory-lite
+   cd ~/.local/share/agent-memory-lite
+   pip install -e .
 
-2. Enter the project and install dependencies with uv (use Tsinghua mirror for speed in China)
-   cd ~/Desktop/Agent-Memory-Lite
-   uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+2. Verify the installation works
+   python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-3. Verify the installation works
-   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
-
-4. Ask the user whether to download an embedding model (for semantic search), present these options:
+3. Ask the user whether to install embedding dependencies (for semantic search):
    — A. Skip (default) — semantic search degrades gracefully to keyword search
-   — B. paraphrase-multilingual-MiniLM-L12-v2 (~113MB, 384-dim, 50+ languages, best for mixed-language content)
-   — C. bge-small-zh-v1.5 (~24MB, 512-dim, Chinese-optimized, best for primarily Chinese, much smaller)
-   If user picks B or C, download the corresponding model from hf-mirror.com mirror to models/embedding/
+   — B. Install (onnxruntime + sqlite-vec, ~200MB)
 
-5. Ask the user to choose an install method, present these options:
-   — A. Hermes Memory Provider plugin (recommended) — Run `cp -r ~/Desktop/Agent-Memory-Lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite/`, then follow the [Adapter Guide](agent-memory-lite-hermes-adapter-guide.md) for the remaining steps (skip steps 6–8)
-   — B. MCP Server — Continue with steps 6–8 below
+4. If user picked B, run pip install -e ".[embedding]", then ask if they want to auto-download the ONNX model (~24MB):
+   python -c "from agent_memory_lite.core.embedder import ensure_model; print('ok' if ensure_model() else 'download failed')"
 
-6. (Only if user chose MCP Server) Add MCP Server config to ~/.hermes/config.yaml under mcp_servers (replace /home/your-username with your actual home path):
+5. Ask the user to choose an install method:
+   — A. Hermes Memory Provider plugin (recommended) — Run `ln -s ~/.local/share/agent-memory-lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite`
+   — B. MCP Server — Continue with step 6
+
+6. (Only if user chose MCP Server) Add MCP Server config to ~/.hermes/config.yaml under mcp_servers:
    agent-memory-lite:
      args: []
-     command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: python -m agent_memory_lite.entrypoints.mcp_server
 
-7. Create wrapper script ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh with content:
-   #!/bin/bash
-   cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
+7. Set AML_HOME env var, append to ~/.bashrc or ~/.zshrc:
+   export AML_HOME="$HOME/.local/share/agent-memory-lite"
 
-8. Make the wrapper executable
-   chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
-
-Tell me when done.
+Tell me the result when done.
 ```
 
 ---
@@ -234,15 +233,13 @@ results = plugin.auto_search("deployment tools")
 ## Manual Install
 
 ```bash
-# 1. Clone
-git clone https://github.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
-cd ~/Desktop/Agent-Memory-Lite
+# One-liner (recommended)
+curl -fsSL https://github.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --mirror github
 
-# 2. Install dependencies
-uv sync
-
-# 3. Verify
-uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
+# Or clone manually
+git clone --depth 1 https://github.com/P1M0U/Agent-Memory-Lite.git ~/.local/share/agent-memory-lite
+cd ~/.local/share/agent-memory-lite
+pip install -e .
 ```
 
 ## Manual Hermes MCP Config
@@ -252,19 +249,7 @@ Add to `~/.hermes/config.yaml` under `mcp_servers:`:
 ```yaml
   agent-memory-lite:
     args: []
-    command: /home/your-username/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
-```
-(Replace `/home/your-username` with your actual home path)
-
-Create the wrapper script:
-
-```bash
-cat > ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh << 'EOF'
-#!/bin/bash
-cd ~/Desktop/Agent-Memory-Lite
-exec uv run python -m agent_memory_lite.entrypoints.mcp_server
-EOF
-chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+    command: python -m agent_memory_lite.entrypoints.mcp_server
 ```
 
 Restart Hermes to activate.
@@ -312,25 +297,25 @@ Without the model, semantic search degrades gracefully to keyword search.
 
 ```bash
 # Store a memory
-uv run python -m agent_memory_lite.entrypoints.cli store "User prefers receiving files via Feishu" -c user_pref -t "feishu"
+aml store "User prefers receiving files via Feishu" -c user_pref -t "feishu"
 
 # Keyword search
-uv run python -m agent_memory_lite.entrypoints.cli search "feishu"
+aml search "feishu"
 
-# Semantic search
-uv run python -m agent_memory_lite.entrypoints.cli search "how to send files to user" -m semantic
+# Semantic search (requires embedding deps + model)
+aml search "how to send files to user" -m semantic
 
-# Hybrid search
-uv run python -m agent_memory_lite.entrypoints.cli search "MCP protocol" -m hybrid
+# Hybrid search (recommended)
+aml search "MCP protocol" -m hybrid
 
 # Stats
-uv run python -m agent_memory_lite.entrypoints.cli stats
+aml stats
 
 # List all memories
-uv run python -m agent_memory_lite.entrypoints.cli list
+aml list
 
 # Reclaim disk space after deletes
-uv run python -m agent_memory_lite.entrypoints.cli vacuum
+aml vacuum
 ```
 
 ### MCP Server (Agent auto-calls)
@@ -356,20 +341,20 @@ Once configured, the Agent can call these 12 tools directly:
 
 ```bash
 # Import from holographic memory
-uv run python -m agent_memory_lite.entrypoints.cli import
+aml import
 
 # Preview (dry run)
-uv run python -m agent_memory_lite.entrypoints.cli import --dry-run
+aml import --dry-run
 
 # Generate vector embeddings for existing memories
-uv run python -m agent_memory_lite.entrypoints.cli migrate
+aml migrate
 ```
 
 ### Database Maintenance
 
 ```bash
 # Reclaim disk space from deleted memories
-uv run python -m agent_memory_lite.entrypoints.cli vacuum
+aml vacuum
 ```
 
 After heavy deletions, SQLite does not automatically reclaim disk space. The `vacuum` command rebuilds the database file to free space.

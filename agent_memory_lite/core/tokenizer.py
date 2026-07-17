@@ -13,7 +13,7 @@ _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 jieba.dt.tmp_dir = str(_CACHE_DIR)
 
 # 加载自定义词典（如果存在）
-_DICT_PATH = Path(__file__).parent.parent.parent / "dicts" / "tech_terms.txt"
+_DICT_PATH = Path(__file__).parent.parent / "dicts" / "tech_terms.txt"
 if _DICT_PATH.exists():
     jieba.load_userdict(str(_DICT_PATH))
 

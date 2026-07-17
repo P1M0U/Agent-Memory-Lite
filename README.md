@@ -21,15 +21,20 @@
 ## 快速体验（30 秒上手）
 
 ```bash
-git clone https://github.com/P1M0U/Agent-Memory-Lite.git && cd Agent-Memory-Lite
-uv sync
+# 国内用户（Gitee，推荐）
+curl -fsSL https://gitee.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash
 
-# 存一条记忆，搜一条记忆
-uv run aml store "用户偏好使用 Docker 部署" -c user_pref
-uv run aml search "Docker"
-# 输出: #1  user_pref
+# 或 GitHub 用户
+curl -fsSL https://github.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --mirror github
+
+# 安装后打开新终端，即可使用：
+aml store "用户偏好使用 Docker 部署" -c user_pref
+aml search "Docker"
+# 输出: #1  user_pref  score=0.2
 #        用户偏好使用 Docker 部署
 ```
+
+> 安装到 `~/.local/share/agent-memory-lite/`，不会污染 Desktop 目录。安装后可直接使用 `aml` 命令。
 
 ## 适用场景
 
@@ -72,70 +77,40 @@ uv run aml search "Docker"
 ```
 agent_memory_lite/        # 核心记忆引擎
 ├── core/                 # 存储、搜索、分词、嵌入
+├── dicts/                # 自定义 jieba 词典
 ├── entrypoints/          # CLI 和 MCP Server
 ├── plugins/              # 多 Agent 自动同步插件
 │   ├── base.py           # 插件基类（auto_store / auto_search / inject_context）
 │   ├── claude_code/      # Claude Code 钩子插件
 │   ├── langchain/        # LangChain BaseMemory 组件
-│   ├── crewai/           # CrewAI Memory 组件
-│   ├── autogen/          # AutoGen memory_provider
+│   ├── crewai/           # CrewAI Memory 组件（WIP）
+│   ├── autogen/          # AutoGen memory_provider（WIP）
 │   └── hermes/           # Hermes MemoryProvider 核心实现
 │       └── provider.py   # on_memory_write 自动同步
 └── tools/                # 数据迁移工具
 hermes_plugin/            # Hermes 插件入口（plugin.yaml + 重导出）
-installers/               # 一键安装脚本
+installers/               # Claude Code 自动安装脚本
 tests/                    # 测试
-dicts/                    # 自定义 jieba 词典
-models/embedding/         # ONNX 嵌入模型（需单独下载）
+models/embedding/         # ONNX 嵌入模型（自动下载）
+install.sh                # 一键安装脚本
 ```
 
 ---
 
 ## 一键安装（给智能体的提示词）
 
-复制以下内容发给你的 AI Agent，它会自动完成克隆、安装、配置。
+复制以下内容发给你的 AI Agent，它会自动完成安装。
 
 > **💡 如果你使用的是 Hermes Agent**，推荐通过 **Memory Provider 插件方式**安装，可获得更好的集成体验（自动同步、进程内调用、工具去重）。详见 [Hermes Memory Provider 适配器安装指南](agent-memory-lite-hermes-adapter-guide.md)。
 
-### 方式一：从 GitHub 安装
+### 方式一：一键脚本（推荐）
 
 ```
-请帮我安装 Agent Memory Lite 记忆系统，步骤如下：
+请帮我安装 Agent Memory Lite 记忆系统，执行以下命令：
 
-1. 克隆仓库到 ~/Desktop/Agent-Memory-Lite/
-   git clone https://github.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
+curl -fsSL https://gitee.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --with-embedding
 
-2. 进入项目目录，用 uv 安装依赖（使用清华镜像加速）
-   cd ~/Desktop/Agent-Memory-Lite
-   uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
-3. 验证安装是否成功
-   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
-
-4. 询问用户是否需要下载嵌入模型（用于语义搜索），给出以下选项让用户选择：
-   — A. 不下载（默认）— 跳过此步，语义搜索自动降级为关键词搜索
-   — B. paraphrase-multilingual-MiniLM-L12-v2（~113MB，384 维，50+ 语言，适合多语言混用）
-   — C. bge-small-zh-v1.5（~24MB，512 维，中文优化，适合纯中文场景，体积更小）
-   如果用户选择 B 或 C，从 hf-mirror.com 镜像下载对应模型到 models/embedding/ 目录
-
-5. 询问用户选择安装方式，给出以下选项：
-   — A. Hermes Memory Provider 插件方式（推荐）— 执行 `cp -r ~/Desktop/Agent-Memory-Lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite/`，然后按 [适配器安装指南](agent-memory-lite-hermes-adapter-guide.md) 完成剩余步骤（步骤 6-8 不需要执行）
-   — B. MCP Server 方式 — 继续执行以下步骤 6-8
-
-6. （仅当用户选择 MCP Server 方式时）把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名 替换为实际路径）：
-   agent-memory-lite:
-     args: []
-     command: /home/你的用户名/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
-
-7. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
-   #!/bin/bash
-   cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
-
-8. 给 wrapper 脚本加执行权限
-   chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
-
-完成后告诉我安装结果。
+安装后告诉我结果。
 ```
 
 ### 方式二：从 Gitee 安装（国内更快）
@@ -143,38 +118,69 @@ models/embedding/         # ONNX 嵌入模型（需单独下载）
 ```
 请帮我安装 Agent Memory Lite 记忆系统，步骤如下：
 
-1. 克隆仓库到 ~/Desktop/Agent-Memory-Lite/
-   git clone https://gitee.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
+1. 克隆仓库并安装
+   git clone --depth 1 https://gitee.com/P1M0U/Agent-Memory-Lite.git ~/.local/share/agent-memory-lite
+   cd ~/.local/share/agent-memory-lite
+   pip install -e .
 
-2. 进入项目目录，用 uv 安装依赖（使用清华镜像加速）
-   cd ~/Desktop/Agent-Memory-Lite
-   uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+2. 验证安装是否成功
+   python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
 
-3. 验证安装是否成功
-   uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
+3. 询问用户是否需要安装嵌入模型（用于语义搜索），给出以下选项让用户选择：
+   — A. 不安装（默认）— 跳过此步，语义搜索自动降级为关键词搜索
+   — B. 安装 embedding 依赖（onnxruntime + sqlite-vec，~200MB）
 
-4. 询问用户是否需要下载嵌入模型（用于语义搜索），给出以下选项让用户选择：
-   — A. 不下载（默认）— 跳过此步，语义搜索自动降级为关键词搜索
-   — B. paraphrase-multilingual-MiniLM-L12-v2（~113MB，384 维，50+ 语言，适合多语言混用）
-   — C. bge-small-zh-v1.5（~24MB，512 维，中文优化，适合纯中文场景，体积更小）
-   如果用户选择 B 或 C，从 hf-mirror.com 镜像下载对应模型到 models/embedding/ 目录
+4. 如果用户选择 B，执行 pip install -e ".[embedding]" 安装依赖。
+   然后询问是否需要自动下载 ONNX 模型（约 24MB），如果需要则运行：
+   python -c "from agent_memory_lite.core.embedder import ensure_model; print('ok' if ensure_model() else 'download failed')"
 
 5. 询问用户选择安装方式，给出以下选项：
-   — A. Hermes Memory Provider 插件方式（推荐）— 执行 `cp -r ~/Desktop/Agent-Memory-Lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite/`，然后按 [适配器安装指南](agent-memory-lite-hermes-adapter-guide.md) 完成剩余步骤（步骤 6-8 不需要执行）
-   — B. MCP Server 方式 — 继续执行以下步骤 6-8
+   — A. Hermes Memory Provider 插件方式（推荐）— 执行 `ln -s ~/.local/share/agent-memory-lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite`
+   — B. MCP Server 方式 — 继续执行以下步骤 6-7
 
-6. （仅当用户选择 MCP Server 方式时）把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段（请将 /home/你的用户名 替换为实际路径）：
+6. （仅当用户选择 MCP Server 方式时）把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段：
    agent-memory-lite:
      args: []
-     command: /home/你的用户名/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+     command: python -m agent_memory_lite.entrypoints.mcp_server
 
-7. 创建 wrapper 脚本 ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh，内容：
-   #!/bin/bash
-   cd ~/Desktop/Agent-Memory-Lite
-   exec uv run python -m agent_memory_lite.entrypoints.mcp_server
+7. 设置 AML_HOME 环境变量，追加到 ~/.bashrc 或 ~/.zshrc：
+   export AML_HOME="$HOME/.local/share/agent-memory-lite"
 
-8. 给 wrapper 脚本加执行权限
-   chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+完成后告诉我安装结果。
+```
+
+### 方式三：从 GitHub 安装
+
+```
+请帮我安装 Agent Memory Lite 记忆系统，步骤如下：
+
+1. 克隆仓库并安装
+   git clone --depth 1 https://github.com/P1M0U/Agent-Memory-Lite.git ~/.local/share/agent-memory-lite
+   cd ~/.local/share/agent-memory-lite
+   pip install -e .
+
+2. 验证安装是否成功
+   python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
+
+3. 询问用户是否需要安装嵌入模型（用于语义搜索），给出以下选项让用户选择：
+   — A. 不安装（默认）— 跳过此步，语义搜索自动降级为关键词搜索
+   — B. 安装 embedding 依赖（onnxruntime + sqlite-vec，~200MB）
+
+4. 如果用户选择 B，执行 pip install -e ".[embedding]" 安装依赖。
+   然后询问是否需要自动下载 ONNX 模型（约 24MB），如果需要则运行：
+   python -c "from agent_memory_lite.core.embedder import ensure_model; print('ok' if ensure_model() else 'download failed')"
+
+5. 询问用户选择安装方式，给出以下选项：
+   — A. Hermes Memory Provider 插件方式（推荐）— 执行 `ln -s ~/.local/share/agent-memory-lite/hermes_plugin/ ~/.hermes/plugins/agent-memory-lite`
+   — B. MCP Server 方式 — 继续执行以下步骤 6-7
+
+6. （仅当用户选择 MCP Server 方式时）把 MCP Server 配置写入 ~/.hermes/config.yaml 的 mcp_servers 段：
+   agent-memory-lite:
+     args: []
+     command: python -m agent_memory_lite.entrypoints.mcp_server
+
+7. 设置 AML_HOME 环境变量，追加到 ~/.bashrc 或 ~/.zshrc：
+   export AML_HOME="$HOME/.local/share/agent-memory-lite"
 
 完成后告诉我安装结果。
 ```
@@ -232,16 +238,17 @@ results = plugin.auto_search("协作工具")
 ## 手动安装
 
 ```bash
-# 1. 克隆
-git clone https://github.com/P1M0U/Agent-Memory-Lite.git ~/Desktop/Agent-Memory-Lite
-cd ~/Desktop/Agent-Memory-Lite
+# 国内用户（Gitee）
+curl -fsSL https://gitee.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash
 
-# 2. 安装依赖
-uv sync
+# GitHub 用户
+curl -fsSL https://github.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --mirror github
 
-# 3. 验证
-uv run python -c "from agent_memory_lite.core.engine import MemoryEngine; print('ok')"
+# 含语义搜索的完整安装
+curl -fsSL https://gitee.com/P1M0U/Agent-Memory-Lite/raw/main/install.sh | bash -s -- --with-embedding
 ```
+
+> 如需手动安装，可克隆仓库后执行 `pip install -e .`。仓库默认安装到 `~/.local/share/agent-memory-lite/`。
 
 ## 下载嵌入模型（可选，用于语义搜索）
 
@@ -285,19 +292,7 @@ hf_hub_download('Xenova/bge-small-zh-v1.5', 'tokenizer.json', local_dir='models/
 ```yaml
   agent-memory-lite:
     args: []
-    command: /home/你的用户名/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
-```
-（请将 `/home/你的用户名` 替换为实际 home 路径）
-
-创建 wrapper 脚本：
-
-```bash
-cat > ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh << 'EOF'
-#!/bin/bash
-cd ~/Desktop/Agent-Memory-Lite
-exec uv run python -m agent_memory_lite.entrypoints.mcp_server
-EOF
-chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
+    command: python -m agent_memory_lite.entrypoints.mcp_server
 ```
 
 重启 Hermes 后生效。
@@ -310,25 +305,25 @@ chmod +x ~/.hermes/scripts/agent-memory-lite-mcp-wrapper.sh
 
 ```bash
 # 存储记忆
-uv run python -m agent_memory_lite.entrypoints.cli store "用户偏好飞书发送文件" -c user_pref -t "飞书"
+aml store "用户偏好飞书发送文件" -c user_pref -t "飞书"
 
 # 关键词搜索
-uv run python -m agent_memory_lite.entrypoints.cli search "飞书"
+aml search "飞书"
 
-# 语义搜索
-uv run python -m agent_memory_lite.entrypoints.cli search "怎么给用户传东西" -m semantic
+# 语义搜索（需安装 embedding 依赖和模型）
+aml search "怎么给用户传东西" -m semantic
 
-# 混合搜索
-uv run python -m agent_memory_lite.entrypoints.cli search "MCP协议" -m hybrid
+# 混合搜索（推荐）
+aml search "MCP协议" -m hybrid
 
 # 查看统计
-uv run python -m agent_memory_lite.entrypoints.cli stats
+aml stats
 
 # 列出所有记忆
-uv run python -m agent_memory_lite.entrypoints.cli list
+aml list
 
 # 回收已删除的磁盘空间
-uv run python -m agent_memory_lite.entrypoints.cli vacuum
+aml vacuum
 ```
 
 ### MCP Server（Agent 自动调用）
@@ -354,20 +349,20 @@ uv run python -m agent_memory_lite.entrypoints.cli vacuum
 
 ```bash
 # 从 holographic memory 导入
-uv run python -m agent_memory_lite.entrypoints.cli import
+aml import
 
 # 预览（不实际写入）
-uv run python -m agent_memory_lite.entrypoints.cli import --dry-run
+aml import --dry-run
 
 # 为已有记忆生成向量嵌入
-uv run python -m agent_memory_lite.entrypoints.cli migrate
+aml migrate
 ```
 
 ### 数据库维护
 
 ```bash
 # 回收已删除记忆占用的磁盘空间
-uv run python -m agent_memory_lite.entrypoints.cli vacuum
+aml vacuum
 ```
 
 大量删除记忆后，SQLite 不会自动回收空间。`vacuum` 命令会重建数据库文件，释放已删除的磁盘空间。
