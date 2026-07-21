@@ -2,8 +2,7 @@
 
 English | [中文](README.md)
 
-> v0.6.7
-
+![Version](https://img.shields.io/badge/version-v0.7.0-blue)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
 ![jieba](https://img.shields.io/badge/jieba-CJK-blue)
