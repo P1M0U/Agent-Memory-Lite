@@ -57,8 +57,8 @@ sinomem search "Docker"
 
 - **Chinese FTS5 Search** — jieba tokenization + SQLite FTS5, same tokenizer for write and query, token-aligned
 - **Semantic Search** — Local ONNX embedding model (~24MB min), optional install, dual-mode auto-detection
-- **Hybrid Search** — Keyword + semantic weighted ranking, balancing precision and recall
-- **MCP Server** — Standard protocol, 12 tools, works with any MCP-compatible Agent
+- **Hybrid Search** — RRF (Reciprocal Rank Fusion), auto-balancing keyword and semantic results without manual weighting
+- **MCP Server** — Standard protocol, 14 tools, works with any MCP-compatible Agent
 - **Multi-Agent Auto-Sync Plugins** — Claude Code / LangChain / CrewAI / AutoGen / Hermes, all supported
 - **CLI Tool** — 15 subcommands (store / search / get / update / delete / list / stats / vacuum / clean / reindex / cleanup / migrate / import / store-batch / search-batch)
 - **Data Migration** — Import from holographic memory, generate embeddings for existing memories
@@ -84,7 +84,7 @@ sinomem/        # Core memory engine
 │   ├── autogen/          # AutoGen memory_provider (WIP)
 │   └── hermes/           # Hermes MemoryProvider core
 │       └── provider.py   # on_memory_write auto-sync
-└── tools/                # Data migration tools
+└── tools/                # Data migration & maintenance tools
 hermes_plugin/            # Hermes plugin entry (plugin.yaml + re-export)
 installers/               # Claude Code installer script
 tests/                    # Tests
@@ -379,19 +379,38 @@ sinomem search "how to send files to user" -m semantic
 # Hybrid search (recommended)
 sinomem search "MCP protocol" -m hybrid
 
+# Get / update / delete a memory
+sinomem get 1
+sinomem update 1 --importance 0.8
+sinomem delete 1
+
 # Stats
 sinomem stats
 
 # List all memories
 sinomem list
 
+# Batch import (JSON file)
+sinomem store-batch --file memories.json
+
+# Batch search
+sinomem search-batch "feishu" "Docker" "Python"
+
+# Clean up expired memories
+sinomem cleanup
+
+# Rebuild FTS5 index (after updating dictionaries)
+sinomem reindex
+
 # Reclaim disk space after deletes
 sinomem vacuum
 ```
 
+> 💡 `sm` is a shorthand alias for `sinomem` — both are equivalent.
+
 ### MCP Server (Agent auto-calls)
 
-Once configured, the Agent can call these 12 tools directly:
+Once configured, the Agent can call these 14 tools directly:
 
 | Tool | Description |
 |------|-------------|
@@ -407,6 +426,8 @@ Once configured, the Agent can call these 12 tools directly:
 | `cleanup_memories` | Clean up expired memories |
 | `store_memories_batch` | Batch store memories |
 | `search_memories_batch` | Batch search multiple queries |
+| `vacuum_memory` | Reclaim disk space from deleted memories |
+| `delete_all_memories` | Delete all memories (⚠️ irreversible) |
 
 ### Data Migration
 

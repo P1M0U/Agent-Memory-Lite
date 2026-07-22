@@ -59,8 +59,8 @@ sinomem search "Docker"
 
 - **中文 FTS5 搜索** — jieba 分词 + SQLite FTS5，写入和查询用同一套分词器，token 完全对齐
 - **语义搜索** — 本地 ONNX 嵌入模型（~24MB 起），可选安装，支持双模自动识别
-- **混合搜索** — 关键词 + 语义加权排序，兼顾精确和模糊
-- **MCP Server** — 标准协议，12 个工具，可接入任何支持 MCP 的 Agent
+- **混合搜索** — RRF（倒数排名融合）自动平衡关键词与语义两路结果，无需手动调权
+- **MCP Server** — 标准协议，14 个工具，可接入任何支持 MCP 的 Agent
 - **多 Agent 自动同步插件** — Claude Code / LangChain / CrewAI / AutoGen / Hermes 开箱即用
 - **CLI 工具** — 15 个子命令（store / search / get / update / delete / list / stats / vacuum / clean / reindex / cleanup / migrate / import / store-batch / search-batch）
 - **数据迁移** — 支持从 holographic memory 导入，支持为已有记忆补充向量
@@ -86,7 +86,7 @@ sinomem/        # 核心记忆引擎
 │   ├── autogen/          # AutoGen memory_provider（WIP）
 │   └── hermes/           # Hermes MemoryProvider 核心实现
 │       └── provider.py   # on_memory_write 自动同步
-└── tools/                # 数据迁移工具
+└── tools/                # 数据迁移与维护工具
 hermes_plugin/            # Hermes 插件入口（plugin.yaml + 重导出）
 installers/               # Claude Code 自动安装脚本
 tests/                    # 测试
@@ -376,19 +376,38 @@ sinomem search "怎么给用户传东西" -m semantic
 # 混合搜索（推荐）
 sinomem search "MCP协议" -m hybrid
 
+# 获取/更新/删除记忆
+sinomem get 1
+sinomem update 1 --importance 0.8
+sinomem delete 1
+
 # 查看统计
 sinomem stats
 
 # 列出所有记忆
 sinomem list
 
+# 批量导入（JSON 文件）
+sinomem store-batch --file memories.json
+
+# 批量搜索
+sinomem search-batch "飞书" "Docker" "Python"
+
+# 清理过期记忆
+sinomem cleanup
+
+# 重建 FTS5 索引（词典更新后使用）
+sinomem reindex
+
 # 回收已删除的磁盘空间
 sinomem vacuum
 ```
 
+> 💡 `sm` 是 `sinomem` 的简写别名，两者等价。
+
 ### MCP Server（Agent 自动调用）
 
-配置完成后，Agent 可以直接调用以下 12 个工具：
+配置完成后，Agent 可以直接调用以下 14 个工具：
 
 | 工具名 | 说明 |
 |--------|------|
@@ -404,6 +423,8 @@ sinomem vacuum
 | `cleanup_memories` | 清理过期记忆 |
 | `store_memories_batch` | 批量存储记忆 |
 | `search_memories_batch` | 批量搜索多个查询 |
+| `vacuum_memory` | 回收已删除记忆占用的磁盘空间 |
+| `delete_all_memories` | 清空所有记忆（⚠️ 不可逆操作） |
 
 ### 数据迁移
 
