@@ -406,7 +406,7 @@ sinomem reindex
 sinomem vacuum
 ```
 
-> 💡 `sm` is a shorthand alias for `sinomem` — both are equivalent.
+> 💡 `sino` is a shorthand alias for `sinomem` — both are equivalent.
 
 ### MCP Server (Agent auto-calls)
 

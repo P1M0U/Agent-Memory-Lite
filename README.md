@@ -403,7 +403,7 @@ sinomem reindex
 sinomem vacuum
 ```
 
-> 💡 `sm` 是 `sinomem` 的简写别名，两者等价。
+> 💡 `sino` 是 `sinomem` 的简写别名，两者等价。
 
 ### MCP Server（Agent 自动调用）
 

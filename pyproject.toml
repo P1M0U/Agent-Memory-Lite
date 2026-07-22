@@ -34,7 +34,7 @@ dev = [
 
 [project.scripts]
 sinomem = "sinomem.entrypoints.cli:main"
-sm = "sinomem.entrypoints.cli:main"
+sino = "sinomem.entrypoints.cli:main"
 
 [dependency-groups]
 dev = [
